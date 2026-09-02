@@ -12,6 +12,18 @@ if [ -z "$TOKEN" ]; then
   echo "WARNING: MAPBOX_TOKEN is not set — the map will fall back to the plain SVG scatter." >&2
 fi
 
+# config.js is served to every visitor, so only a PUBLIC (pk.) token may go in it.
+# A secret (sk.*) token carries account privileges and cannot be URL-restricted;
+# publishing one would expose the Mapbox account. Fail the build rather than leak it.
+case "$TOKEN" in
+  sk.*)
+    echo "ERROR: MAPBOX_TOKEN is a secret token (sk.*)." >&2
+    echo "       config.js is public — a secret token must never be deployed." >&2
+    echo "       Use a public token (pk.*) from Mapbox > Account > Tokens." >&2
+    exit 1
+    ;;
+esac
+
 python3 - <<'PY'
 import json, os
 cfg = {
