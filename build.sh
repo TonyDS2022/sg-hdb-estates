@@ -24,9 +24,11 @@ case "$TOKEN" in
     ;;
 esac
 
-# Optional tip jar. Set TIP_URL (and optionally TIP_LABEL) as build variables to
-# show the link; leave TIP_URL unset and nothing renders. Any platform works —
-# Ko-fi, Buy Me a Coffee, GitHub Sponsors, a Stripe payment link.
+# Tip jar. The link is public, not a secret, so it lives here rather than in a build
+# variable — the site then deploys with it and needs no dashboard step. `${VAR-default}`
+# (no colon) means: unset falls back to the default, but TIP_URL="" deliberately hides it.
+export TIP_URL="${TIP_URL-https://buymeacoffee.com/zphzpj4gcka}"
+export TIP_LABEL="${TIP_LABEL-}"
 python3 - <<'PY'
 import json, os
 cfg = {
