@@ -1,7 +1,41 @@
+<div align="center">
+
 # Singapore HDB Estate Database
 
-A block-level database of every residential HDB block in Singapore, joined from three
-official sources, plus a local HTML report.
+**Every residential HDB block in Singapore on one map** — dwelling units, year of completion,
+estimated MOP, geocoded coordinates, URA planning area and resale prices.
+
+[![Live site](https://img.shields.io/badge/live-sg--hdb--estates-2a78d6?style=flat-square)](https://sg-hdb-estates.tz-sg.workers.dev/)
+[![Blocks](https://img.shields.io/badge/blocks-10%2C796-1baf7a?style=flat-square)](#schema--blocks)
+[![Units](https://img.shields.io/badge/dwelling%20units-1%2C175%2C956-1baf7a?style=flat-square)](#schema--blocks)
+[![Geocoded](https://img.shields.io/badge/geocoded-100%25-1baf7a?style=flat-square)](#pipeline)
+[![Transactions](https://img.shields.io/badge/resale%20transactions-239%2C583-eb6834?style=flat-square)](#resale-prices)
+[![Data licence](https://img.shields.io/badge/data-Singapore%20ODL%20v1.0-8a8880?style=flat-square)](https://www.onemap.gov.sg/legal/opendatalicence.html)
+[![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/zphzpj4gcka)
+
+<img src="docs/demo.gif" width="820" alt="Walkthrough: every HDB block plotted by era, a block bubble showing project name and last-twelve-month resale medians, filtering by flat type and estate, MRT lines and stations, dark mode and the charts.">
+
+</div>
+
+---
+
+## What it does
+
+Three official datasets, joined into one queryable database and a single map you can actually
+use. Click any block and you get its project name, unit mix, age, estimated MOP, what its flats
+sold for in the last twelve months, and links straight to live listings.
+
+| | |
+|---|---|
+| **10,796** residential blocks | every one geocoded, 100% |
+| **1,175,956** dwelling units | with the full 1-room → Executive mix |
+| **239,583** resale transactions | Jan 2017 onwards, joined at 100.00% |
+| **212** MRT/LRT stations | plus all 10 lines, drawn from OpenStreetMap |
+| **55** URA planning areas | assigned by point-in-polygon, not by name matching |
+
+Filters for region, HDB town, planning area, flat type and year of completion flow through
+**every** number on the page — tiles, map, charts, both tables, the CSV export and the
+PropertyGuru links.
 
 ## Quick start
 
@@ -243,3 +277,37 @@ Set `ONEMAP_TOKEN` to use an authenticated quota, which raises the ceiling.
   1,110,981 sold + 64,975 rental = 1,175,956. Summing the type columns alone undercounts by 5.5%.
 - Counts are **dwelling units sold**, HDB's own field. Blocks under construction appear with
   their planned unit counts.
+
+---
+
+## Attribution
+
+Contains information from **HDB Property Information**, **Resale Flat Prices** and the
+**Master Plan 2019 Planning Area Boundary**, accessed from
+[data.gov.sg](https://data.gov.sg), and from the **OneMap** Search API, accessed from
+[onemap.gov.sg](https://www.onemap.gov.sg) — all made available under the terms of the
+[Singapore Open Data Licence version 1.0](https://www.onemap.gov.sg/legal/opendatalicence.html),
+which permits commercial and non-commercial use with attribution.
+
+Rail and station geometry © [OpenStreetMap](https://www.openstreetmap.org/copyright)
+contributors, licensed under [ODbL](https://opendatacommons.org/licenses/odbl/).
+Basemap © [Mapbox](https://www.mapbox.com/about/maps/) © OpenStreetMap.
+
+**This project is not endorsed by, and implies no official status with, HDB, URA or SLA.**
+The same notice appears in the footer of the report itself, as the licence requires.
+
+## Licence
+
+The code in this repository is released under the MIT Licence. The **data** it fetches and
+redistributes remains under its own terms — Singapore ODL v1.0 for the government datasets,
+ODbL for the OpenStreetMap geometry. ODbL is share-alike: if you redistribute a derived
+*database* that includes the rail or station layers, that derivative carries ODbL too.
+
+## Support
+
+This report is free, has no tracking, and costs nothing to run beyond a Mapbox tile quota.
+If it saved you an afternoon of scrolling property portals:
+
+<a href="https://buymeacoffee.com/zphzpj4gcka">
+  <img src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy me a coffee">
+</a>

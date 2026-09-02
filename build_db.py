@@ -88,11 +88,15 @@ class AreaIndex:
 # estate, so DEPOT must not be in this pattern.
 FACILITY = re.compile(
     r"\b(HAWKER|MARKET|COMMUNITY (CENTRE|CLUB)|PUBLIC SHELTER|SHELTERS?|CAR ?PARK|CARPARK|"
-    r"MULTI-?STOREY|CHILDCARE|CHILD CARE|KINDERGARTEN|POLYCLINIC|SCHOOL|MOSQUE|TEMPLE|CHURCH|"
-    r"SUBSTATION|PUMPING|SERVICE RESERVOIR|NEIGHBOURHOOD POLICE|POLICE (POST|CENTRE)|CLINIC|"
-    r"SPORTS|SWIMMING|LIBRARY|BUS (INTERCHANGE|TERMINAL)|FIRE STATION|SENIOR CARE|"
-    r"FAMILY SERVICE|STUDENT CARE|EATING HOUSE|FOOD CENTRE|PRE ?- ?SCHOOL|VETERINARY|"
-    r"MONTESSORI|SALVATION ARMY|PTE\.? ?LTD)\b|\(BLK",
+    r"MULTI-?STOREY|CHILD ?CARE|CHILDREN|CHILD DEVELOPMENT|KINDER\w*|POLYCLINIC|SCHOOL\w*|"
+    r"MOSQUE|TEMPLE|CHURCH|SUBSTATION|PUMPING|SERVICE RESERVOIR|NEIGHBOURHOOD POLICE|"
+    r"POLICE (POST|CENTRE)|CLINIC|SPORTS|SWIMMING|LIBRARY|BUS (INTERCHANGE|TERMINAL)|"
+    r"FIRE STATION|SENIOR CARE|FAMILY SERVICE|STUDENT ?CARE|EATING HOUSE|FOOD CENTRE|"
+    # "PRE-SCHOOL" needed the hyphen, so plain "Preschool" slipped through and 60-odd
+    # PCF Sparkletots childcare centres were published as HDB project names.
+    r"PRE ?-? ?SCHOOL\w*|SPARKLETOTS|EDUCARE|SCHOOLHOUSE|LEARNING (CENTRE|COVE|CENTER)|"
+    r"ENRICHMENT|DAY ?CARE|NURSERY|TUITION|VETERINARY|ANIMAL MEDICAL|MONTESSORI|"
+    r"SALVATION ARMY|PTE\.? ?LTD\.?|\bLTD\.?)\b|\(BLK",
     re.I)
 
 
@@ -204,7 +208,8 @@ def main():
             "street": r["street"],
             "project": project_of((g or {}).get("address", ""), r["blk_no"], r["street"]),
             "address": (g or {}).get("address", ""),
-            "postal": (g or {}).get("postal", ""),
+            # OneMap returns the literal "NIL" when a block has no postal code
+            "postal": (lambda v: v if v.isdigit() else "")((g or {}).get("postal", "") or ""),
             "town_code": r["bldg_contract_town"],
             "town": TOWNS.get(r["bldg_contract_town"], r["bldg_contract_town"]),
             "planning_area": area,
