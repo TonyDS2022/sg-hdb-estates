@@ -25,22 +25,28 @@ python3 serve.py -p 9000    # pick a different port
 | `site/stations.geojson` | 212 MRT/LRT stations, with codes, interchange and build status |
 | `site/data.json` | Dictionary-encoded payload the report loads |
 
-## Deploying (Cloudflare Pages)
+## Deploying (Cloudflare Workers, static assets)
 
-The report is a pure static bundle — no server runtime. Point a Pages project at this repo:
+The report is a pure static bundle — no server runtime. `wrangler.jsonc` declares it as an
+assets-only Worker (no `main` script), so Cloudflare serves `site/` directly. Requests to
+static assets are free and unlimited; only Worker-script invocations are billed, and there
+is no script here.
 
 | Setting | Value |
 |---|---|
-| Framework preset | None |
 | Build command | `bash build.sh` |
-| Build output directory | `site` |
-| Environment variable | `MAPBOX_TOKEN` = your `pk.` token |
+| Deploy command | `npx wrangler deploy` |
+| Build variable | `MAPBOX_TOKEN` = your `pk.` token |
+
+The `MAPBOX_TOKEN` field is not offered when the project is first created, so the first
+deploy will succeed *without* a basemap (the map falls back to the SVG scatter). Add the
+variable under Settings → Build → Variables and secrets, then re-run the deployment.
 
 `build.sh` regenerates `site/config.js` from `MAPBOX_TOKEN` at deploy time, so the token lives
 in Cloudflare's secret store and never enters the repo. Without it the build still succeeds and
 the map falls back to the dependency-free SVG scatter.
 
-`site/_headers` sets the cache policy (vendored libraries immutable for a year, data
+`site/_headers` is honoured by Workers static assets and sets the cache policy (vendored libraries immutable for a year, data
 revalidated hourly). Without it a static host would re-send ~3 MB on every visit;
 `serve.py` sets the same headers locally but is not deployed.
 
