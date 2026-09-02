@@ -1,0 +1,54 @@
+name: Refresh data
+
+# HDB republishes the property dataset periodically. This re-runs the pipeline and
+# commits the result only if the QA checks pass.
+on:
+  schedule:
+    - cron: '17 3 2 * *'      # 03:17 UTC on the 2nd of each month
+  workflow_dispatch:           # and on demand from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install --quiet requests
+
+      - name: Download sources from data.gov.sg
+        run: python3 fetch_data.py
+
+      # geocode_cache.jsonl is committed, so this only calls OneMap for blocks that
+      # are genuinely new. A full run takes ~94 minutes; a monthly delta takes seconds.
+      - name: Geocode new blocks only
+        run: python3 geocode.py
+
+      - name: Rebuild database and site payload
+        run: |
+          python3 build_db.py
+          python3 build_site.py
+
+      # Gates the commit: a bad refresh fails the run instead of publishing itself.
+      - name: Validate
+        run: python3 validate.py
+
+      - name: Commit if anything changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- data site; then
+            echo "No change in source data — nothing to commit."
+            exit 0
+          fi
+          git add data site
+          git commit -m "Refresh HDB data $(date -u +%Y-%m-%d)"
+          git push
+          echo "Pushed refreshed data."

@@ -1,5 +1,5 @@
 """QA the assembled database: coverage, bounds, duplicates, and geocode outliers."""
-import csv, json, math, os, collections
+import csv, json, math, os, sys, collections
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
@@ -98,6 +98,8 @@ def main():
     print("-" * 72)
     print(f"{'ALL CHECKS PASS' if not fails else 'FAILED: ' + ', '.join(fails)}")
     print(f"({incoherent} towns straddle multiple planning areas — expected, not a defect)\n")
+    # non-zero exit so CI can gate a data refresh on the checks actually passing
+    return 1 if fails else 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
