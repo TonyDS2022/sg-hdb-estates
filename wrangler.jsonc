@@ -1,0 +1,10 @@
+{
+  // Assets-only Worker: no `main` script, so Cloudflare serves site/ directly.
+  // Requests to static assets are free and unlimited; only Worker-script
+  // invocations are billed, and there is no script here.
+  "name": "sg-hdb-estates",
+  "compatibility_date": "2026-09-02",
+  "assets": {
+    "directory": "./site"
+  }
+}
