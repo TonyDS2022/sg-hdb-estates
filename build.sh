@@ -24,14 +24,20 @@ case "$TOKEN" in
     ;;
 esac
 
+# Optional tip jar. Set TIP_URL (and optionally TIP_LABEL) as build variables to
+# show the link; leave TIP_URL unset and nothing renders. Any platform works —
+# Ko-fi, Buy Me a Coffee, GitHub Sponsors, a Stripe payment link.
 python3 - <<'PY'
 import json, os
 cfg = {
     "token": os.environ.get("MAPBOX_TOKEN", ""),
     "styles": {"light": "mapbox://styles/mapbox/light-v11",
                "dark": "mapbox://styles/mapbox/dark-v11"},
+    "tipUrl": os.environ.get("TIP_URL", "").strip(),
+    "tipLabel": os.environ.get("TIP_LABEL", "").strip() or "Buy me a coffee",
 }
 with open("site/config.js", "w") as f:
     f.write("window.MAP_CONFIG = " + json.dumps(cfg) + ";\n")
-print("wrote site/config.js  token=" + ("present" if cfg["token"] else "MISSING"))
+print("wrote site/config.js  token=" + ("present" if cfg["token"] else "MISSING")
+      + "  tip=" + (cfg["tipUrl"] or "none"))
 PY
