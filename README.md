@@ -25,6 +25,29 @@ python3 serve.py -p 9000    # pick a different port
 | `site/stations.geojson` | 212 MRT/LRT stations, with codes, interchange and build status |
 | `site/data.json` | Dictionary-encoded payload the report loads |
 
+## Deploying (Cloudflare Pages)
+
+The report is a pure static bundle — no server runtime. Point a Pages project at this repo:
+
+| Setting | Value |
+|---|---|
+| Framework preset | None |
+| Build command | `bash build.sh` |
+| Build output directory | `site` |
+| Environment variable | `MAPBOX_TOKEN` = your `pk.` token |
+
+`build.sh` regenerates `site/config.js` from `MAPBOX_TOKEN` at deploy time, so the token lives
+in Cloudflare's secret store and never enters the repo. Without it the build still succeeds and
+the map falls back to the dependency-free SVG scatter.
+
+`site/_headers` sets the cache policy (vendored libraries immutable for a year, data
+revalidated hourly). Without it a static host would re-send ~3 MB on every visit;
+`serve.py` sets the same headers locally but is not deployed.
+
+**Restrict the token by URL in your Mapbox account before going public.** A `pk.` token is
+necessarily visible to the browser, so the URL restriction — not secrecy — is what protects it.
+Hosting is free; Mapbox is the cost that scales, at 50k map loads/month on the free tier.
+
 ## Sources
 
 | Source | Publisher | Supplies |
