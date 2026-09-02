@@ -22,3 +22,7 @@ data/hdb_estates.csv
 data/resale.csv
 # Intermediate; build_resale.py regenerates it, and its content ships inside site/data.json.
 data/resale_agg.json
+
+# demo recording intermediates (docs/demo.gif IS tracked)
+docs/*.mp4
+docs/*.webm
