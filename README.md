@@ -60,13 +60,19 @@ Hosting is free; Mapbox is the cost that scales, at 50k map loads/month on the f
 ## Pipeline
 
 ```
+fetch_data.py  data.gov.sg -> data/hdb_property.csv, data/planning_area.geojson
 geocode.py     block + street -> OneMap -> data/geocode_cache.jsonl   (resumable)
 build_db.py    CSV + geocodes + point-in-polygon -> sqlite / csv / json
 build_site.py  -> site/data.json + site/config.js
 fetch_rail.py  Overpass -> site/rail.geojson            (cached; run once)
-validate.py    QA the assembled database
+validate.py    QA the assembled database (exits non-zero on failure)
 serve.py       -> http://127.0.0.1:<port>/
 ```
+
+A GitHub Action (`.github/workflows/refresh-data.yml`) runs this monthly and on demand.
+It commits only if `validate.py` passes, so a bad refresh fails the run rather than
+publishing itself. Because `data/geocode_cache.jsonl` is committed, the scheduled run
+only calls OneMap for genuinely new blocks — seconds, against ~94 minutes for a cold run.
 
 Rebuild everything after a source refresh:
 
