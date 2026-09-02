@@ -37,6 +37,11 @@ is no script here.
 | Build command | `bash build.sh` |
 | Deploy command | `npx wrangler deploy` |
 | Build variable | `MAPBOX_TOKEN` = your `pk.` token |
+| Build variable (optional) | `TIP_URL` = tip-jar link, `TIP_LABEL` = its wording |
+
+`TIP_URL` drives an optional footer tip link. Leave it unset and nothing renders — the
+link can never appear broken or empty. Any platform works (Ko-fi, Buy Me a Coffee,
+GitHub Sponsors, a Stripe payment link); it is just a URL.
 
 The `MAPBOX_TOKEN` field is not offered when the project is first created, so the first
 deploy will succeed *without* a basemap (the map falls back to the SVG scatter). Add the
