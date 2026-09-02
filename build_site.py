@@ -55,6 +55,19 @@ def main():
 
     street_full = [nice(v) for v in dicts["street"]]
 
+    # resale aggregates, aligned to the row order so no join key ships to the browser
+    resale, res_meta, res_towns = [], {}, []
+    rp = os.path.join(DATA, "resale_agg.json")
+    if os.path.exists(rp):
+        agg = json.load(open(rp))
+        blocks = agg["blocks"]
+        for r in rows:
+            resale.append(blocks.get(f'{r["blk_no"].upper()}|{r["street"].upper()}', 0))
+        res_meta = {k: agg[k] for k in ("base_month", "latest_month", "window_from", "transactions")}
+        res_towns = agg["towns"]
+        hit = sum(1 for x in resale if x)
+        print(f"  resale: {hit:,}/{len(rows):,} blocks have transactions")
+
     geo = sum(1 for r in rows if r["lat"])
     years = [int(r["top_year"]) for r in rows]
     payload = {
@@ -81,6 +94,9 @@ def main():
                  "units", "floors", "u1", "u2", "u3", "u4", "u5", "uex", "uoth",
                  "urent", "postal", "comm"],
         "dict": {**{k: dicts[k] for k in dicts}, "street_full": street_full},
+        "resale": resale,
+        "resaleMeta": res_meta,
+        "resaleTowns": res_towns,
         "rows": out,
     }
     p = os.path.join(SITE, "data.json")
