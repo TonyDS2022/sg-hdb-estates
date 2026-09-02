@@ -132,6 +132,18 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 .pglinks a{color:var(--accent);text-decoration:none;font-weight:560}
 .pglinks a:hover{text-decoration:underline}
 .pgnote{color:var(--text-muted);font-size:10.5px;margin-top:8px;line-height:1.4}
+.sales{margin-top:10px;padding-top:9px;border-top:1px solid var(--border)}
+.sales h4{margin:0 0 6px;font-size:10.5px;font-weight:650;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.05em}
+.sales table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.sales td{padding:2px 0;border:0;white-space:nowrap}
+.sales td.p{text-align:right;font-weight:620;padding-left:10px}
+.sales td.n{text-align:right;color:var(--text-muted);padding-left:10px;font-size:11px}
+.sales tr.sel td{color:var(--accent)}
+/* a median from 2 sales should not look as firm as one from 20 */
+.sales tr.thin td.p{font-weight:500;color:var(--text-secondary)}
+.nosale{color:var(--text-muted);font-size:11.5px;margin-top:9px;padding-top:9px;
+  border-top:1px solid var(--border)}
 .gridline{stroke:var(--grid);stroke-width:1;shape-rendering:crispEdges}
 .axis{stroke:var(--border);stroke-width:1;shape-rendering:crispEdges}
 .tick{fill:var(--text-muted);font-size:10.5px}
@@ -326,13 +338,14 @@ async function loadData(){
 loadData().then(async d => {
   const C = d.cols, D = d.dict;
   DB = d;
-  DB.blocks = d.rows.map(r => {
+  DB.blocks = d.rows.map((r, i) => {
     const o = {};
     C.forEach((c, i) => o[c] = r[i]);
     const si = o.street;
     o.street = D.street[si];
     o.streetFull = (D.street_full || D.street)[si];
     o.project = (D.project || [])[o.project] || '';
+    o.res = (d.resale || [])[i] || null;
     o.town = D.town[o.town];
     o.pa = D.planning_area[o.pa];
     o.region = D.region[o.region];
@@ -423,6 +436,9 @@ function boot(){
         <p class="note">Dwelling units by URA planning area, top 15.</p>
         <div id="cPa"></div></div>
     </div>
+    <div class="card" style="margin-top:16px"><h2>Resale prices</h2>
+      <p class="note" id="cPriceNote"></p>
+      <div id="cPrice"></div><div class="legend" id="lPrice"></div></div>
     <div class="card" style="margin-top:16px"><h2>Upcoming MOP</h2>
       <p class="note">Units estimated to reach their 5-year Minimum Occupation Period, by year.</p>
       <div id="cMop"></div>
@@ -574,7 +590,7 @@ function filtered(){
 
 function render(){
   const rows = filtered();
-  tiles(rows); drawMap(rows); estateTable(rows); yearChart(rows); mixChart(rows); paChart(rows); mopChart(rows); table(rows);
+  tiles(rows); drawMap(rows); estateTable(rows); priceChart(rows); yearChart(rows); mixChart(rows); paChart(rows); mopChart(rows); table(rows);
 }
 
 /* ---------- tiles ---------- */
@@ -591,6 +607,17 @@ function tiles(rows){
     ['Planning areas', new Set(rows.map(b=>b.pa).filter(Boolean)).size, `${new Set(rows.map(b=>b.town)).size} HDB towns`],
     ['Rental units', fmt(rent), units ? `${(rent/units*100).toFixed(1)}% of stock` : ''],
   ];
+  // last-12-month prices, weighted by how many flats actually changed hands
+  const recent = [];
+  rows.forEach(b => {
+    if (!b.res) return;
+    const keys = F.utype ? [F.utype] : Object.keys(b.res);
+    keys.forEach(k => { const a = b.res[k]; if (a && a[RS.N]) recent.push([a[RS.MED], a[RS.N]]); });
+  });
+  const mp = wMedian(recent);
+  const sold = recent.reduce((a, x) => a + x[1], 0);
+  t.push(['Median resale (LTM)', mp ? sgd(mp) : '—',
+          sold ? `${fmt(sold)} sold in 12m to ${(DB.resaleMeta||{}).latest_month || ''}` : 'no sales in 12m']);
   $('#tiles').innerHTML = t.map(x =>
     `<div class="tile"><div class="k">${x[0]}</div><div class="v">${x[1]}</div><div class="s">${x[2]}</div></div>`).join('');
 }
@@ -656,6 +683,7 @@ function toGeoJSON(pts){
     properties:{a:p.addr, t:p.town, pa:p.pa || '—', u:uOf(p), f:p.floors,
                 top:p.top, mop:p.mop, po:p.postal || '', d:p.dec.o,
                 bl:p.blk, sf:p.streetFull || p.street, pj:p.project || '',
+                rs:JSON.stringify(p.res || null),
                 r:Math.sqrt(uOf(p) / umax)},
   }))};
 }
@@ -777,6 +805,40 @@ function addMapLayers(){
   setBasemapLabels(!SHOW_NAMES);
 }
 
+/* Resale aggregates, LTM-first:
+   [salesLTM, medianLTM S$k, medianPsfLTM, salesSince2017, lastSalePrice S$k, monthsSinceBase] */
+const RS = {N:0, MED:1, PSF:2, NALL:3, LASTP:4, LAST:5};
+/* Headline price for one block×type: the LTM median, or the last actual sale if the
+   window is empty. Returns the value plus whether it is current, so the UI can say so. */
+function priceOf(a){
+  if (!a) return null;
+  return a[RS.N] ? {v:a[RS.MED], n:a[RS.N], cur:true, last:a[RS.LAST]}
+                 : {v:a[RS.LASTP], n:1, cur:false, last:a[RS.LAST]};
+}
+const sgd = k => 'S$' + (k >= 1000 ? (k/1000).toFixed(2).replace(/\.?0+$/,'') + 'M' : k + 'k');
+function monthLabel(i){
+  const base = (DB.resaleMeta || {}).base_month || '2017-01';
+  const t = (+base.slice(0,4)) * 12 + (+base.slice(5,7)) - 1 + i;
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t % 12]
+       + ' ' + Math.floor(t / 12);
+}
+/* Weighted median: prices are skewed, so a mean would be pulled by the top end. */
+function wMedian(pairs){
+  const v = pairs.filter(p => p[1] > 0).sort((a, b) => a[0] - b[0]);
+  const tot = v.reduce((a, p) => a + p[1], 0);
+  if (!tot) return null;
+  let acc = 0;
+  for (const [val, w] of v){ acc += w; if (acc >= tot / 2) return val; }
+  return v[v.length - 1][0];
+}
+/* One headline price for a block: the filtered flat type, else weighted across its types. */
+function blockPrice(b){
+  if (!b.res) return null;
+  if (F.utype) { const p = priceOf(b.res[F.utype]); return p ? p.v : null; }
+  const ps = Object.values(b.res).map(priceOf).filter(Boolean);
+  return wMedian(ps.map(p => [p.v, p.n]));
+}
+
 /* PropertyGuru search deep-link. Verified Sept 2026: /property-for-sale?freetext=<query>
    returns a parsed search page; the older /singapore-property-listing/ path now 403s.
    If they change the scheme again, this constant is the only thing to update. */
@@ -809,12 +871,35 @@ function showBlockPopup(lngLat, p){
       ${p.pj ? `<div class="proj">${p.pj}</div>` : ''}
       <div class="d">${p.t} · ${p.pa}<br>${fmt(p.u)} units · ${p.f} storeys<br>
       TOP ${p.top} · MOP est. ${p.mop}${p.po ? '<br>Singapore ' + p.po : ''}</div>
+      ${salesHtml(p)}
       <div class="pglinks">${links.map(([lbl, q]) =>
         `<a href="${pgUrl(q)}" target="_blank" rel="noopener noreferrer">${lbl} &#8599;</a>`).join('')}
       </div>
       <div class="pgnote">PropertyGuru searches, opening in a new tab. A single block often has
       no active listing — the project and street searches are the fallbacks.</div></div>`)
     .addTo(MAP);
+}
+
+function salesHtml(p){
+  let res = null;
+  try { res = JSON.parse(p.rs || 'null'); } catch { res = null; }
+  if (!res || !Object.keys(res).length)
+    return `<div class="nosale">No resale transactions since 2017 — typically a newer block
+            still within its MOP, or rental-only.</div>`;
+  const order = TYPES.filter(t => res[t.k]);
+  const rows = order.map(t => {
+    const p = priceOf(res[t.k]);
+    const cls = [F.utype === t.k ? 'sel' : '', (!p.cur || p.n < 2) ? 'thin' : ''].filter(Boolean).join(' ');
+    const note = p.cur ? `${p.n} sold · ${monthLabel(p.last)}`
+                       : `last sold ${monthLabel(p.last)}`;
+    return `<tr${cls ? ` class="${cls}"` : ''}><td>${t.lbl}</td><td class="p">${sgd(p.v)}</td>
+      <td class="n">${note}</td></tr>`;
+  }).join('');
+  const stale = order.some(t => !priceOf(res[t.k]).cur);
+  return `<div class="sales"><h4>Resale &middot; median, last 12 months</h4><table>${rows}</table>`
+    + (stale ? `<div class="pgnote" style="margin-top:6px">Muted rows had no sale in the last
+        12 months — the figure is that block's most recent sale, not a current median.</div>` : '')
+    + `</div>`;
 }
 
 const tipHtml = p => `<b>${p.a}</b>${p.pj ? `<br><span style="color:var(--accent);font-weight:600">${p.pj}</span>` : ''}<br><span class="d">${p.t} · ${p.pa}<br>
@@ -957,6 +1042,55 @@ function frame(s, W, H, M, ymax, yfmt){
   el('line', {x1:M.l, x2:W - M.r, y1:H - M.b, y2:H - M.b, class:'axis'}, s);
 }
 const kfmt = v => v >= 1000 ? (v/1000) % 1 === 0 ? (v/1000)+'k' : (v/1000).toFixed(1)+'k' : Math.round(v);
+
+/* ---------- resale price trend ---------- */
+/* Driven by town x type x year medians rather than raw transactions: 240k rows cannot
+   ship to the browser, and 1,272 aggregate rows filter just as responsively. */
+function priceChart(rows){
+  const host = $('#cPrice'); host.innerHTML = ''; $('#lPrice').innerHTML = '';
+  const src = DB.resaleTowns || [];
+  if (!src.length){ host.innerHTML = '<p class="note">No transaction data loaded.</p>'; return; }
+  const towns = new Set(rows.map(b => b.town.toUpperCase()));
+  const byYear = new Map();
+  src.forEach(([town, key, yr, n, medK]) => {
+    if (!towns.has(town.toUpperCase())) return;
+    if (F.utype && key !== F.utype) return;
+    if (!byYear.has(yr)) byYear.set(yr, []);
+    byYear.get(yr).push([medK, n]);
+  });
+  const d = [...byYear.entries()].sort((a, b) => a[0] - b[0])
+    .map(([yr, ps]) => [yr, wMedian(ps), ps.reduce((a, x) => a + x[1], 0)])
+    .filter(x => x[1]);
+  const label = F.utype ? (TYPES.find(t => t.k === F.utype) || {}).lbl : 'all flat types';
+  $('#cPriceNote').textContent =
+    `Median resale price by year of sale, ${label}, for the estates in the current selection. ` +
+    `${fmt((DB.resaleMeta||{}).transactions || 0)} transactions, ${(DB.resaleMeta||{}).base_month} to ${(DB.resaleMeta||{}).latest_month}.`;
+  if (!d.length){ host.innerHTML = '<p class="note">No transactions match this selection.</p>'; return; }
+  const W = 900, H = 250, M = {t:12, r:8, b:30, l:56};
+  const ymax = niceMax(Math.max(...d.map(x => x[1])));
+  const s = svgRoot(W, H);
+  // format ticks exactly, not rounded to 1 d.p. — 160/320/480 must not read as 0.2/0.3/0.5
+  frame(s, W, H, M, ymax, v => v ? sgd(Math.round(v)) : 'S$0');
+  const iw = W - M.l - M.r, ph = H - M.t - M.b, step = iw/d.length;
+  const bw = Math.min(52, step - 14);
+  d.forEach(([yr, medK, n], i) => {
+    const x = M.l + i*step + (step-bw)/2, h = medK/ymax*ph;
+    const el_ = el('path', {d: barPath(x, H - M.b - h, bw, h, 3), fill: SER(1)}, s);
+    el_.addEventListener('mouseenter', e => showTip(e,
+      `<b>${yr}</b><br><span class="d">median ${sgd(medK)}<br>${fmt(n)} transactions</span>`));
+    el_.addEventListener('mousemove', e => showTip(e, tip.innerHTML));
+    el_.addEventListener('mouseleave', hideTip);
+    el('text', {x:(x+bw/2).toFixed(1), y:H - M.b + 15, class:'tick', 'text-anchor':'middle'}, s).textContent = yr;
+    if (i === d.length - 1 || i === 0)
+      el('text', {x:(x+bw/2).toFixed(1), y:(H - M.b - h - 6).toFixed(1), class:'tick',
+                  'text-anchor':'middle', style:'font-weight:620'}, s).textContent = sgd(medK);
+  });
+  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = 'Median resale price';
+  host.appendChild(s);
+  $('#lPrice').innerHTML =
+    `<span style="font-size:11px;color:var(--text-muted)">Aggregated from HDB town medians, weighted by transaction count. ` +
+    `2026 is a partial year.</span>`;
+}
 
 /* ---------- units completed per year ---------- */
 function yearChart(rows){
@@ -1143,13 +1277,14 @@ function estateTable(rows){
 const COLS = [
   ['addr','Block','t'], ['town','HDB town','t'], ['pa','URA planning area','t'],
   ['region','Region','t'], ['units','Units','n'], ['floors','Storeys','n'],
-  ['top','TOP','y'], ['mop','MOP est.','y'], ['lat','Lat','n'], ['lon','Lon','n'],
+  ['top','TOP','y'], ['mop','MOP est.','y'], ['price','Resale (LTM)','n'],
+  ['lat','Lat','n'], ['lon','Lon','n'],
   ['postal','Postal','t'],
 ];
 function table(rows){
   const sorted = [...rows].sort((a,b) => {
-    const x = sortKey === 'units' ? uOf(a) : a[sortKey];
-    const y = sortKey === 'units' ? uOf(b) : b[sortKey];
+    const x = sortKey === 'units' ? uOf(a) : sortKey === 'price' ? (blockPrice(a) ?? -1) : a[sortKey];
+    const y = sortKey === 'units' ? uOf(b) : sortKey === 'price' ? (blockPrice(b) ?? -1) : b[sortKey];
     if (x == null) return 1; if (y == null) return -1;
     return (typeof x === 'string' ? x.localeCompare(y) : x - y) * sortDir;
   });
@@ -1163,7 +1298,8 @@ function table(rows){
     table(filtered());
   });
   $('#tbody').innerHTML = show.map(b => '<tr>' + COLS.map(c => {
-    let v = c[0] === 'units' ? uOf(b) : b[c[0]];
+    let v = c[0] === 'units' ? uOf(b) : c[0] === 'price' ? blockPrice(b) : b[c[0]];
+    if (c[0] === 'price') return `<td class="num">${v ? sgd(v) : '—'}</td>`;
     if (c[0] === 'lat' || c[0] === 'lon') v = v == null ? '—' : v.toFixed(5);
     else if (c[2] === 'y') v = String(v);          // years carry no thousands separator
     else if (c[2] === 'n') v = fmt(v);
@@ -1178,13 +1314,14 @@ function downloadCsv(){
   const rows = filtered();
   const head = ['blk_no','street','town','planning_area','region','lat','lon','postal',
     'top_year','mop_year_est','total_units','max_floor_lvl','units_1r','units_2r','units_3r',
-    'units_4r','units_5r','units_exec','units_other','units_rental'];
+    'units_4r','units_5r','units_exec','units_other','units_rental','resale_ltm_median_sgd'];
   const line = a => a.map(v => {
     const s = v == null ? '' : String(v);
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
   }).join(',');
   const body = rows.map(b => line([b.blk, b.street, b.town, b.pa, b.region, b.lat, b.lon,
-    b.postal, b.top, b.mop, b.units, b.floors, b.u1, b.u2, b.u3, b.u4, b.u5, b.uex, b.uoth, b.urent]));
+    b.postal, b.top, b.mop, b.units, b.floors, b.u1, b.u2, b.u3, b.u4, b.u5, b.uex, b.uoth, b.urent,
+    (blockPrice(b) || '') && blockPrice(b) * 1000]));
   const blob = new Blob([line(head) + '\n' + body.join('\n')], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

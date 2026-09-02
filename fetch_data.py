@@ -10,6 +10,9 @@ DATASETS = [
      "HDB Property Information"),
     ("d_4765db0e87b9c86336792efe8a1f7a66", "planning_area.geojson",
      "Master Plan 2019 Planning Area Boundary (No Sea)"),
+    # resale transactions, Jan 2017 onwards - republished monthly
+    ("d_8b84c4ee58e3cfc0ece0d773c8ca6abc", "resale.csv",
+     "Resale Flat Prices (registration date, 2017 onwards)"),
 ]
 
 

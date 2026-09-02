@@ -66,7 +66,8 @@ Hosting is free; Mapbox is the cost that scales, at 50k map loads/month on the f
 | HDB Property Information (`d_17f5382f26140b1fdae0ba2ef6239d2f`) | HDB via data.gov.sg | blocks, dwelling units, flat-type mix, year completed |
 | OneMap Search API | Singapore Land Authority | latitude / longitude / postal code per block |
 | Master Plan 2019 Planning Area Boundary (`d_4765db0e87b9c86336792efe8a1f7a66`) | URA via data.gov.sg | planning area + region polygons |
-| OpenStreetMap (Overpass API) | OSM contributors, ODbL | MRT/LRT line geometry for the map overlay |
+| OpenStreetMap (Overpass API) | OSM contributors, ODbL | MRT/LRT line and station geometry |
+| Resale Flat Prices (`d_8b84c4ee58e3cfc0ece0d773c8ca6abc`) | HDB via data.gov.sg | 239,583 resale transactions, Jan 2017 onwards |
 
 ## Pipeline
 
@@ -75,7 +76,8 @@ fetch_data.py  data.gov.sg -> data/hdb_property.csv, data/planning_area.geojson
 geocode.py     block + street -> OneMap -> data/geocode_cache.jsonl   (resumable)
 build_db.py    CSV + geocodes + point-in-polygon -> sqlite / csv / json
 build_site.py  -> site/data.json + site/config.js
-fetch_rail.py  Overpass -> site/rail.geojson            (cached; run once)
+fetch_rail.py  Overpass -> site/rail.geojson, site/stations.geojson  (cached)
+build_resale.py resale.csv -> data/resale_agg.json
 validate.py    QA the assembled database (exits non-zero on failure)
 serve.py       -> http://127.0.0.1:<port>/
 ```
@@ -121,6 +123,29 @@ Selecting a flat type filters to blocks containing that type **and** switches ev
 the report — tiles, map dot size, charts, estate table, block table — to that type's units,
 so the whole page describes the stock the filter names. It also flows into the PropertyGuru
 links as `property_type_code[]`.
+
+### Resale prices
+
+`build_resale.py` folds 239,583 transactions into two aggregates — the raw file cannot ship
+to a browser, but these can:
+
+* **per (block, flat type)** — what flats in that block actually sold for, shown in the map bubble
+* **per (town, flat type, year)** — 1,272 rows, enough to drive a trend chart that filters live
+
+The join is on block + street + flat type and lands **239,580 of 239,583 (100.00%)**. The one
+unmatched block (82 Macpherson Lane) is absent from HDB's current property list, almost
+certainly a SERS demolition.
+
+**The headline is the last-twelve-month median, not an all-period one.** A median across the
+whole 2017–2026 span understates current value by **23% at the median** (p25 +13%, p75 +33%),
+because the market rose sharply from 2020 — averaging the two is not a price estimate.
+63% of block×type pairs sold within the LTM window; the rest carry their most recent actual
+sale, muted and dated so it cannot be mistaken for a current median. Single-sale medians are
+muted for the same reason.
+
+The trend chart aggregates HDB-town medians weighted by transaction count. Per-block yearly
+medians were considered and rejected: at a median of ~12 sales per pair over ten years, a
+one-year bucket is often a single transaction, which is a price, not a median.
 
 ### Rail overlay
 
