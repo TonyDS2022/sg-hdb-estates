@@ -1,5 +1,5 @@
 """Download the source datasets from data.gov.sg into data/."""
-import os, sys, requests
+import os, sys, time, requests
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
@@ -16,13 +16,29 @@ DATASETS = [
 ]
 
 
+def poll(ds, tries=6):
+    """data.gov.sg rate-limits back-to-back downloads (code 24); back off and retry."""
+    delay = 10
+    for attempt in range(tries):
+        meta = requests.get(POLL.format(ds), timeout=90).json()
+        if meta.get("code") == 0:
+            return meta
+        if meta.get("name") != "TOO_MANY_REQUESTS":
+            sys.exit(f"poll-download failed for {ds}: {meta}")
+        if attempt == tries - 1:
+            sys.exit(f"poll-download still rate-limited after {tries} attempts: {ds}")
+        print(f"  rate-limited, retrying in {delay}s…")
+        time.sleep(delay)
+        delay = min(delay * 2, 90)
+
+
 def main():
     os.makedirs(DATA, exist_ok=True)
     changed = False
-    for ds, name, label in DATASETS:
-        meta = requests.get(POLL.format(ds), timeout=90).json()
-        if meta.get("code") != 0:
-            sys.exit(f"poll-download failed for {ds}: {meta}")
+    for i, (ds, name, label) in enumerate(DATASETS):
+        if i:
+            time.sleep(3)          # stay under the rate limit rather than rely on retries
+        meta = poll(ds)
         # the S3 URL is presigned - it must be requested verbatim, so do not let
         # anything re-encode it (urllib.request re-quotes it and gets a 403)
         r = requests.get(meta["data"]["url"], timeout=600)
