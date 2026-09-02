@@ -353,6 +353,7 @@ loadData().then(async d => {
     o.dec = decOf(o.top);
     return o;
   });
+  HAS_RESALE = Array.isArray(d.resale) && d.resale.some(Boolean);
   F.y0 = d.meta.year_min; F.y1 = d.meta.year_max;
   HAS_BASEMAP = await initBasemap();
   boot();
@@ -376,7 +377,8 @@ function boot(){
   const m = DB.meta;
   $('#prov').innerHTML =
     `${fmt(m.blocks)} residential blocks · ${fmt(m.units)} dwelling units · TOP ${m.year_min}–${m.year_max}
-     · ${m.geocoded_pct}% geocoded · built ${m.generated}`;
+     · ${m.geocoded_pct}% geocoded${(DB.resaleMeta||{}).latest_month
+        ? ' · resale to ' + (DB.resaleMeta||{}).latest_month : ''} · built ${m.generated}`;
 
   $('#app').className = '';
   $('#app').innerHTML = `
@@ -636,6 +638,7 @@ const themeNow = () => document.documentElement.getAttribute('data-theme')
 
 let MAP = null, MAP_MODE = null, MAP_PTS = [], LAST_FIT = null;
 let RAIL = null, STN = null, SHOW_RAIL = true, SHOW_NAMES = true, SHOW_STN = true;
+let HAS_RESALE = false;
 
 /* MRT/LRT geometry from OpenStreetMap, drawn in the operators' own line colours.
    Those are identity colours riders already know, so they are not drawn from the
@@ -883,6 +886,10 @@ function showBlockPopup(lngLat, p){
 function salesHtml(p){
   let res = null;
   try { res = JSON.parse(p.rs || 'null'); } catch { res = null; }
+  // Distinguish "this block genuinely has no sales" from "the price data never loaded".
+  // Claiming the former when the latter is true is a silent, confident falsehood.
+  if (!HAS_RESALE)
+    return `<div class="nosale">Price data unavailable — reload the page to fetch it.</div>`;
   if (!res || !Object.keys(res).length)
     return `<div class="nosale">No resale transactions since 2017 — typically a newer block
             still within its MOP, or rental-only.</div>`;

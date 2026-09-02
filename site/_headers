@@ -1,4 +1,10 @@
 # Cache policy for static hosts (Cloudflare Pages, Netlify).
+#
+# Everything that changes on deploy uses no-cache: the browser must revalidate, but a
+# 304 still reuses its copy, so this costs a round-trip and not the payload. max-age
+# on these files is a trap — a visitor who loaded the site before a deploy keeps a
+# stale data.json for the whole window and sees a half-broken page with no way to know.
+# Only /vendor/* is immutable, because its contents never change for a given version.
 # serve.py sets these locally, but that server is not deployed — without this file
 # a static host would serve everything with default caching and re-send 3 MB per visit.
 
@@ -9,16 +15,16 @@
   Cache-Control: public, max-age=0, must-revalidate
 
 /config.js
-  Cache-Control: public, max-age=300, must-revalidate
+  Cache-Control: public, no-cache
 
 /data.json
-  Cache-Control: public, max-age=3600, must-revalidate
+  Cache-Control: public, no-cache
 
 /rail.geojson
-  Cache-Control: public, max-age=86400, must-revalidate
+  Cache-Control: public, no-cache
 
 /stations.geojson
-  Cache-Control: public, max-age=86400, must-revalidate
+  Cache-Control: public, no-cache
 
 /*
   X-Content-Type-Options: nosniff
