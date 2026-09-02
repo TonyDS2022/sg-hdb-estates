@@ -16,3 +16,9 @@ data/hdb.sqlite
 data/hdb_blocks.csv
 data/hdb_blocks.json
 data/hdb_estates.csv
+
+# Re-downloaded by fetch_data.py and republished monthly — committing it would add a
+# fresh ~23 MB blob to history on every scheduled refresh.
+data/resale.csv
+# Intermediate; build_resale.py regenerates it, and its content ships inside site/data.json.
+data/resale_agg.json

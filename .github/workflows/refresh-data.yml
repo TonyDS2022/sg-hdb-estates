@@ -31,9 +31,10 @@ jobs:
       - name: Geocode new blocks only
         run: python3 geocode.py
 
-      - name: Rebuild database and site payload
+      - name: Rebuild database, resale aggregates and site payload
         run: |
           python3 build_db.py
+          python3 build_resale.py
           python3 build_site.py
 
       # Gates the commit: a bad refresh fails the run instead of publishing itself.
