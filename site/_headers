@@ -1,0 +1,25 @@
+# Cache policy for static hosts (Cloudflare Pages, Netlify).
+# serve.py sets these locally, but that server is not deployed — without this file
+# a static host would serve everything with default caching and re-send 3 MB per visit.
+
+/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/config.js
+  Cache-Control: public, max-age=300, must-revalidate
+
+/data.json
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/rail.geojson
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/stations.geojson
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

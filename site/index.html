@@ -1,0 +1,1177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Singapore HDB Estate Database</title>
+<style>
+:root{
+  color-scheme: light;
+  --surface-0:#f7f7f5; --surface-1:#fcfcfb; --surface-2:#f0efec;
+  --border:#e5e4e0; --grid:#eceae6;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#8a8880;
+  --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a; --series-4:#eda100;
+  --series-5:#e87ba4; --series-6:#008300; --series-7:#4a3aa7; --series-8:#e34948;
+  --ord-1:#86b6ef; --ord-2:#5598e7; --ord-3:#2a78d6; --ord-4:#1c5cab; --ord-5:#104281;
+  --accent:#2a78d6; --ctrl-ink:none; --map-ring:#fcfcfb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --surface-0:#121211; --surface-1:#1a1a19; --surface-2:#232321;
+    --border:#2e2e2b; --grid:#262623;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8e85;
+    --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
+    --series-5:#d55181; --series-6:#008300; --series-7:#9085e9; --series-8:#e66767;
+    --ord-1:#256abf; --ord-2:#3987e5; --ord-3:#6da7ec; --ord-4:#9ec5f4; --ord-5:#cde2fb;
+    --accent:#3987e5; --ctrl-ink:invert(1) hue-rotate(180deg); --map-ring:#1a1a19;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --surface-0:#121211; --surface-1:#1a1a19; --surface-2:#232321;
+  --border:#2e2e2b; --grid:#262623;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8e85;
+  --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
+  --series-5:#d55181; --series-6:#008300; --series-7:#9085e9; --series-8:#e66767;
+  --ord-1:#256abf; --ord-2:#3987e5; --ord-3:#6da7ec; --ord-4:#9ec5f4; --ord-5:#cde2fb;
+  --accent:#3987e5; --ctrl-ink:invert(1) hue-rotate(180deg); --map-ring:#1a1a19;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-primary);
+  font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:32px 24px 64px}
+header h1{font-size:26px;font-weight:650;letter-spacing:-.02em;margin:0 0 6px}
+header p.sub{margin:0;color:var(--text-secondary);max-width:70ch}
+.provenance{margin-top:10px;font-size:12px;color:var(--text-muted)}
+.themebtn{position:absolute;top:24px;right:24px;background:var(--surface-1);
+  border:1px solid var(--border);color:var(--text-secondary);border-radius:7px;
+  padding:6px 11px;cursor:pointer;font-size:12px}
+.themebtn:hover{color:var(--text-primary)}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:11px;padding:18px 20px}
+.card h2{font-size:14px;font-weight:620;margin:0 0 2px;letter-spacing:-.01em}
+.card p.note{margin:0 0 14px;font-size:12px;color:var(--text-muted)}
+.filters{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end;margin:26px 0 20px;
+  background:var(--surface-1);border:1px solid var(--border);border-radius:11px;padding:14px 16px}
+.f label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;
+  text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+select,input[type=search]{background:var(--surface-0);color:var(--text-primary);
+  border:1px solid var(--border);border-radius:7px;padding:7px 9px;font:inherit;font-size:13px;min-width:132px}
+input[type=search]{min-width:186px}
+select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.f label.chk{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);
+  background:var(--surface-0);border:1px solid var(--border);border-radius:7px;padding:7px 10px;
+  cursor:pointer;text-transform:none;letter-spacing:.01em;font-weight:400;margin:0;white-space:nowrap}
+.f label.chk:hover{color:var(--text-primary);border-color:var(--text-muted)}
+.chk input{accent-color:var(--accent);margin:0}
+.railkey{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:11.5px}
+.railkey i{width:14px;height:3px;border-radius:2px;flex:none;font-style:normal}
+.yearctl{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.yearctl .dash{color:var(--text-muted)}
+.yrnum{width:64px;min-width:0;padding:5px 6px;font-size:12.5px;text-align:center;
+  font-variant-numeric:tabular-nums}
+.yrnum::-webkit-outer-spin-button,.yrnum::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.yrnum{-moz-appearance:textfield}
+/* dual-handle range: two overlaid inputs, only the thumbs take pointer events */
+.slider{position:relative;height:30px;width:190px;display:flex;align-items:center}
+.slider .track,.slider .fill{position:absolute;height:4px;border-radius:2px;pointer-events:none}
+.slider .track{left:0;right:0;background:var(--surface-2);border:1px solid var(--border)}
+.slider .fill{background:var(--accent)}
+.slider input[type=range]{position:absolute;left:0;width:100%;margin:0;height:30px;
+  background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.slider input[type=range]:focus{outline:none}
+.slider input[type=range]::-webkit-slider-runnable-track{background:none;border:none}
+.slider input[type=range]::-moz-range-track{background:none;border:none}
+.slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;
+  height:15px;width:15px;border-radius:50%;background:var(--surface-1);
+  border:2px solid var(--accent);cursor:ew-resize;box-shadow:0 1px 3px rgba(0,0,0,.22)}
+.slider input[type=range]::-moz-range-thumb{pointer-events:auto;height:15px;width:15px;
+  border-radius:50%;background:var(--surface-1);border:2px solid var(--accent);
+  cursor:ew-resize;box-shadow:0 1px 3px rgba(0,0,0,.22)}
+.slider input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--accent);outline-offset:2px}
+.btn{background:var(--surface-0);border:1px solid var(--border);color:var(--text-secondary);
+  border-radius:7px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{color:var(--text-primary);border-color:var(--text-muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:11px;padding:15px 17px}
+.tile .k{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.tile .v{font-size:27px;font-weight:640;letter-spacing:-.025em;margin-top:5px;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.tile .s{font-size:12px;color:var(--text-secondary);margin-top:3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+svg{display:block;width:100%;height:auto;overflow:visible}
+/* the global svg rule above must not touch Mapbox's own control icons */
+.mapboxgl-ctrl svg{width:auto;height:auto}
+#map{height:540px;border-radius:9px;overflow:hidden;background:var(--surface-2);
+  border:1px solid var(--border)}
+#map.svgfallback{height:auto;border:0;background:none}
+.mapboxgl-ctrl-group{background:var(--surface-1)!important;border:1px solid var(--border)!important;
+  box-shadow:none!important;border-radius:7px!important}
+.mapboxgl-ctrl-group button+button{border-top:1px solid var(--border)!important}
+.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon{filter:var(--ctrl-ink)}
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-attrib{background:var(--surface-1)!important;
+  border-radius:6px 0 0 0;font-size:10px!important;opacity:.9}
+.mapboxgl-ctrl-attrib a,.mapboxgl-ctrl-attrib{color:var(--text-muted)!important}
+.mapboxgl-ctrl-logo{opacity:.5}
+.mapboxgl-canvas:focus{outline:none}
+.mapboxgl-popup-content{background:var(--surface-1)!important;color:var(--text-primary);
+  border:1px solid var(--border);border-radius:9px;padding:12px 14px 11px;
+  box-shadow:0 8px 26px rgba(0,0,0,.2);font-size:12.5px;line-height:1.5}
+.mapboxgl-popup-tip{border-top-color:var(--surface-1)!important;border-bottom-color:var(--surface-1)!important;
+  border-left-color:var(--surface-1)!important;border-right-color:var(--surface-1)!important}
+.mapboxgl-popup-close-button{color:var(--text-muted);font-size:18px;padding:1px 7px;
+  background:none!important;right:2px;top:1px}
+.mapboxgl-popup-close-button:hover{color:var(--text-primary)}
+.pop b{font-weight:620}
+.pop .proj{color:var(--accent);font-weight:600;margin-top:1px}
+.pop .d{color:var(--text-secondary);margin-top:3px}
+.pglinks{display:flex;flex-direction:column;gap:5px;margin-top:10px;padding-top:9px;
+  border-top:1px solid var(--border)}
+.pglinks a{color:var(--accent);text-decoration:none;font-weight:560}
+.pglinks a:hover{text-decoration:underline}
+.pgnote{color:var(--text-muted);font-size:10.5px;margin-top:8px;line-height:1.4}
+.gridline{stroke:var(--grid);stroke-width:1;shape-rendering:crispEdges}
+.axis{stroke:var(--border);stroke-width:1;shape-rendering:crispEdges}
+.tick{fill:var(--text-muted);font-size:10.5px}
+.axlabel{fill:var(--text-secondary);font-size:11px;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:12px;color:var(--text-secondary)}
+.legend span.sw{width:10px;height:10px;border-radius:2.5px;display:inline-block;margin-right:5px;vertical-align:-1px}
+.legend .it{display:flex;align-items:center}
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface-1);
+  border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px;
+  color:var(--text-primary);box-shadow:0 6px 22px rgba(0,0,0,.16);opacity:0;
+  transition:opacity .1s;max-width:270px;line-height:1.45}
+#tip b{font-weight:620}
+#tip .d{color:var(--text-secondary)}
+.maprow{display:grid;grid-template-columns:1fr 200px;gap:18px;align-items:start}
+@media(max-width:820px){.maprow{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:620;color:var(--text-secondary);border-bottom:1px solid var(--border);
+  padding:8px 9px;cursor:pointer;white-space:nowrap;position:sticky;top:0;background:var(--surface-1)}
+th:hover{color:var(--text-primary)}
+th .ar{color:var(--accent);font-size:10px}
+td{padding:7px 9px;border-bottom:1px solid var(--grid);white-space:nowrap}
+td.num{text-align:right}
+tbody tr:hover{background:var(--surface-2)}
+.tblwrap{max-height:520px;overflow:auto;margin-top:12px;border:1px solid var(--border);border-radius:9px}
+footer{margin-top:36px;padding-top:20px;border-top:1px solid var(--border);
+  font-size:12px;color:var(--text-muted);line-height:1.7}
+footer table{font-size:12px;margin-top:8px}
+footer td{border:0;padding:3px 14px 3px 0;white-space:normal;vertical-align:top}
+.warn{background:var(--surface-2);border-left:3px solid var(--series-4);padding:10px 13px;
+  border-radius:0 7px 7px 0;font-size:12.5px;color:var(--text-secondary);margin:14px 0 0}
+.loading{padding:60px;text-align:center;color:var(--text-muted)}
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn">◐ theme</button>
+<div class="wrap">
+<header>
+  <h1>Singapore HDB Estate Database</h1>
+  <p class="sub">Every residential HDB block in Singapore — dwelling units, year of completion (TOP),
+  estimated MOP, geocoded coordinates and URA planning area — assembled from three official sources.</p>
+  <div class="provenance" id="prov">Loading…</div>
+</header>
+
+<div id="app" class="loading">Loading data…</div>
+</div>
+<div id="tip"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmt = n => n.toLocaleString('en-SG');
+const SER = i => `var(--series-${i})`;
+const ORD = i => `var(--ord-${i})`;
+
+/* ---------- theme ---------- */
+const tb = $('#themebtn');
+tb.onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const dark = cur ? cur === 'dark'
+    : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  render();
+};
+
+/* ---------- tooltip ---------- */
+const tip = $('#tip');
+function showTip(e, html){
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+const hideTip = () => tip.style.opacity = 0;
+
+/* ---------- svg helpers ---------- */
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, parent){
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) if (attrs[k] !== undefined && attrs[k] !== null) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function svgRoot(w, h){
+  const s = el('svg', {viewBox:`0 0 ${w} ${h}`, 'aria-hidden':'false', role:'img'});
+  return s;
+}
+/** Rounded only at the data end, anchored to the baseline. */
+function barPath(x, y, w, h, r){
+  r = Math.max(0, Math.min(r, w/2, h));
+  return `M${x},${y+h} L${x},${y+r} Q${x},${y} ${x+r},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h} Z`;
+}
+function hbarPath(x, y, w, h, r){
+  r = Math.max(0, Math.min(r, h/2, w));
+  return `M${x},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h-r} Q${x+w},${y+h} ${x+w-r},${y+h} L${x},${y+h} Z`;
+}
+function niceMax(v){
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  for (const m of [1,1.2,1.5,2,2.5,3,4,5,6,8,10]) if (m*p >= v) return m*p;
+  return 10*p;
+}
+
+/* ---------- state ---------- */
+let DB = null, F = {region:'', town:'', pa:'', y0:null, y1:null, q:'', utype:''};
+/* With a flat type selected every count becomes that type's count, so the tiles,
+   map, charts and table all describe the same stock the filter names. */
+const uOf = b => F.utype ? b[F.utype] : b.units;
+const uLabel = () => F.utype ? (TYPES.find(t => t.k === F.utype) || {}).lbl + ' units' : 'Dwelling units';
+let sortKey = 'units', sortDir = -1;
+
+/* Five era bins, not seven: the one-hue blue ramp only supports five steps that
+   clear the ordinal adjacent-lightness gap and the light-end contrast floor. */
+const DECADES = [
+  {k:'pre1980', lbl:'Before 1980', lo:0,    hi:1979, o:1},
+  {k:'1980s',   lbl:'1980s',       lo:1980, hi:1989, o:2},
+  {k:'1990s',   lbl:'1990s',       lo:1990, hi:1999, o:3},
+  {k:'2000s',   lbl:'2000s',       lo:2000, hi:2009, o:4},
+  {k:'2010s',   lbl:'2010 onwards',lo:2010, hi:9999, o:5},
+];
+const decOf = y => DECADES.find(d => y >= d.lo && y <= d.hi);
+
+const TYPES = [
+  {k:'u1', lbl:'1-room', s:1}, {k:'u2', lbl:'2-room', s:2},
+  {k:'u3', lbl:'3-room', s:3}, {k:'u4', lbl:'4-room', s:4},
+  {k:'u5', lbl:'5-room', s:5}, {k:'uex', lbl:'Executive', s:6},
+  {k:'uoth', lbl:'Multi-gen / Studio', s:7}, {k:'urent', lbl:'Rental', s:8},
+];
+
+/* ---------- load ---------- */
+/* Behind a path-mounting proxy (code-server's /proxy/<port>, Jupyter, nginx) a URL
+   without a trailing slash makes a relative fetch resolve one level too high — it
+   lands on the proxy's own routes instead of this report. Anchor every asset to an
+   explicit base, and still fall back to the bare relative form. */
+const BASE = location.pathname.endsWith('/') ? '' : location.pathname + '/';
+
+function loadAsset(tag, attrs){
+  return new Promise((res, rej) => {
+    const e = document.createElement(tag);
+    Object.assign(e, attrs);
+    e.onload = () => res(true);
+    e.onerror = () => rej(new Error('could not load ' + (attrs.src || attrs.href)));
+    document.head.appendChild(e);
+  });
+}
+
+/* The basemap is optional: without a token, or offline, the report falls back to
+   plotting the same coordinates as a plain SVG scatter. */
+let HAS_BASEMAP = false;
+async function initBasemap(){
+  try {
+    await loadAsset('link', {rel:'stylesheet', href: BASE + 'vendor/mapbox-gl.css'});
+    await loadAsset('script', {src: BASE + 'vendor/mapbox-gl.js'});
+    await loadAsset('script', {src: BASE + 'config.js'});
+    const t = window.MAP_CONFIG && window.MAP_CONFIG.token;
+    if (t && window.mapboxgl){ mapboxgl.accessToken = t; await loadRail(); return true; }
+  } catch (e) { console.warn('basemap unavailable, using scatter:', e.message); }
+  return false;
+}
+
+async function loadData(){
+  const path = location.pathname;
+  const urls = [BASE + 'data.json'];
+  if (!urls.includes('data.json')) urls.push('data.json');
+  if (!path.endsWith('/')) urls.push(path + '/data.json');
+  let last;
+  for (const u of urls){
+    try {
+      const r = await fetch(u, {headers:{'Accept':'application/json'}});
+      if (!r.ok){ last = new Error(`${u} returned HTTP ${r.status}`); continue; }
+      const txt = await r.text();
+      let d;
+      try { d = JSON.parse(txt); }
+      catch { last = new Error(`${u} was not JSON — got ${txt.slice(0, 60)}`); continue; }
+      if (!d || !Array.isArray(d.rows)){
+        last = new Error(`${u} was answered by something else — ${JSON.stringify(d).slice(0, 70)}`);
+        continue;
+      }
+      return d;
+    } catch (e) { last = e; }
+  }
+  throw last;
+}
+
+loadData().then(async d => {
+  const C = d.cols, D = d.dict;
+  DB = d;
+  DB.blocks = d.rows.map(r => {
+    const o = {};
+    C.forEach((c, i) => o[c] = r[i]);
+    const si = o.street;
+    o.street = D.street[si];
+    o.streetFull = (D.street_full || D.street)[si];
+    o.project = (D.project || [])[o.project] || '';
+    o.town = D.town[o.town];
+    o.pa = D.planning_area[o.pa];
+    o.region = D.region[o.region];
+    o.addr = o.blk + ' ' + o.street;
+    o.dec = decOf(o.top);
+    return o;
+  });
+  F.y0 = d.meta.year_min; F.y1 = d.meta.year_max;
+  HAS_BASEMAP = await initBasemap();
+  boot();
+}).catch(e => {
+  $('#app').className = '';
+  $('#app').innerHTML = `<div class="card" style="border-color:var(--series-4)">
+    <h2>Could not load the data</h2>
+    <p class="note" style="margin-bottom:12px">${String(e).replace(/^Error: /, '')}</p>
+    <p class="note">This page and <code>data.json</code> must come from the same server.
+    Opening the HTML file directly, or previewing it in an IDE, breaks that.</p>
+    <p class="note" style="margin-top:12px">Behind a proxy such as code-server's
+    <code>/proxy/&lt;port&gt;</code>, make sure the URL ends in a <b>trailing slash</b> —
+    without it the request escapes to the proxy's own routes.</p>
+    <p class="note" style="margin-top:12px">Locally: run <code>python3 serve.py</code> and use the
+    URL it prints.</p></div>`;
+});
+
+function uniq(f){ return [...new Set(DB.blocks.map(f).filter(Boolean))].sort(); }
+
+function boot(){
+  const m = DB.meta;
+  $('#prov').innerHTML =
+    `${fmt(m.blocks)} residential blocks · ${fmt(m.units)} dwelling units · TOP ${m.year_min}–${m.year_max}
+     · ${m.geocoded_pct}% geocoded · built ${m.generated}`;
+
+  $('#app').className = '';
+  $('#app').innerHTML = `
+    <div class="filters">
+      <div class="f"><label for="fr">Region</label><select id="fr"></select></div>
+      <div class="f"><label for="ft">HDB town</label><select id="ft"></select></div>
+      <div class="f"><label for="fp">URA planning area</label><select id="fp"></select></div>
+      <div class="f"><label for="fu">Flat type</label><select id="fu">
+        <option value="">All flat types</option>
+        ${TYPES.map(t => `<option value="${t.k}">${t.lbl}</option>`).join('')}
+      </select></div>
+      <div class="f"><label for="fn0">TOP year range</label>
+        <div class="yearctl">
+          <input type="number" class="yrnum" id="fn0" min="${m.year_min}" max="${m.year_max}"
+                 step="1" aria-label="Earliest year of completion">
+          <span class="dash">–</span>
+          <input type="number" class="yrnum" id="fn1" min="${m.year_min}" max="${m.year_max}"
+                 step="1" aria-label="Latest year of completion">
+        </div>
+        <div class="slider">
+          <div class="track"></div><div class="fill" id="yrfill"></div>
+          <input type="range" id="fy0" min="${m.year_min}" max="${m.year_max}" step="1"
+                 aria-hidden="true" tabindex="-1">
+          <input type="range" id="fy1" min="${m.year_min}" max="${m.year_max}" step="1"
+                 aria-hidden="true" tabindex="-1">
+        </div></div>
+      <div class="f"><label for="fq">Search block / street / postal</label>
+        <input type="search" id="fq" placeholder="e.g. Tampines St 96"></div>
+      <div class="f"><label>Overlay</label>
+        <div style="display:flex;gap:8px">
+          <label class="chk"><input type="checkbox" id="frail" checked> MRT / LRT</label>
+          <label class="chk"><input type="checkbox" id="fstn" checked> Stations</label>
+          <label class="chk"><input type="checkbox" id="fnames" checked> Estate names</label>
+        </div></div>
+      <button class="btn" id="freset">Reset</button>
+      <button class="btn" id="fcsv">Download CSV</button>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="card"><h2>Where the flats are</h2>
+      <p class="note">Every geocoded block on a Mapbox basemap, shaded by the decade it was completed.
+      Dot area is proportional to dwelling units. Zoom in to resolve individual blocks.</p>
+      <div class="maprow"><div id="map"></div><div id="maplegend"></div></div></div>
+    <div class="card" style="margin-top:16px"><h2>Estate summary</h2>
+      <p class="note">One row per HDB town — the level HDB itself plans and names estates at.
+      Click a row to filter the whole report to that estate.</p>
+      <div class="tblwrap" style="max-height:none"><table><thead id="ethead"></thead><tbody id="etbody"></tbody></table></div></div>
+    <div class="card" style="margin-top:16px"><h2>Dwelling units completed each year</h2>
+      <p class="note">Year of TOP. Each bar is the number of units in blocks completed that year.</p>
+      <div id="cYear"></div></div>
+    <div class="grid2">
+      <div class="card"><h2>Flat-type mix by decade</h2>
+        <p class="note">Dwelling units by flat type and decade of completion. Rental flats are
+        a tenure rather than a type — HDB counts them in total dwelling units but leaves them out of
+        the sold flat-type breakdown, so they are shown as their own segment here.</p>
+        <div id="cMix"></div><div class="legend" id="lMix"></div></div>
+      <div class="card"><h2>Largest planning areas</h2>
+        <p class="note">Dwelling units by URA planning area, top 15.</p>
+        <div id="cPa"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h2>Upcoming MOP</h2>
+      <p class="note">Units estimated to reach their 5-year Minimum Occupation Period, by year.</p>
+      <div id="cMop"></div>
+      <div class="warn"><b>Estimate.</b> MOP runs 5 years from key collection, which HDB does not publish per block.
+      This uses year of completion + 5 as a proxy, so it can be out by a year either way. Prime and Plus flats
+      (from 2024) carry a 10-year MOP and are not separately flagged in the source data.</div></div>
+    <div class="card" style="margin-top:16px"><h2>All blocks</h2>
+      <p class="note" id="tcount"></p>
+      <div class="tblwrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+      <p class="note" style="margin-top:10px" id="tnote"></p></div>
+    <footer>
+      <b style="color:var(--text-secondary)">Sources</b>
+      <table id="src"></table>
+      <div style="margin-top:12px;padding:10px 12px;background:var(--surface-2);border-radius:7px">
+      Contains information from <b>HDB Property Information</b> and <b>Master Plan 2019 Planning
+      Area Boundary</b> accessed on 02 September 2026 from
+      <a href="https://data.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">data.gov.sg</a>,
+      and from the <b>OneMap</b> Search API accessed on 02 September 2026 from
+      <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">onemap.gov.sg</a>,
+      which are made available under the terms of the
+      <a href="https://www.onemap.gov.sg/legal/opendatalicence.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Singapore Open Data Licence version 1.0</a>.
+      Rail geometry &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">OpenStreetMap</a>
+      contributors, licensed under ODbL. Basemap &copy; Mapbox &copy; OpenStreetMap.
+      This report is not endorsed by, and implies no official status with, HDB, URA or SLA.</div>
+      <div style="margin-top:12px">Derived fields — <b>MOP</b> = year completed + 5 (estimate);
+      <b>lease remaining</b> = 99 − (current year − year completed), an approximation since the lease
+      commences shortly before completion; <b>planning area</b> assigned by point-in-polygon against the
+      URA Master Plan 2019 boundaries, which is why an HDB town such as Central Area resolves to
+      URA areas like Outram and Rochor.</div>
+    </footer>`;
+
+  const fr = $('#fr'), ft = $('#ft'), fp = $('#fp');
+  const opt = (sel, list, all) => {
+    sel.innerHTML = `<option value="">${all}</option>` +
+      list.map(v => `<option>${v}</option>`).join('');
+  };
+  opt(fr, uniq(b => b.region), 'All regions');
+  opt(ft, uniq(b => b.town), 'All towns');
+  opt(fp, uniq(b => b.pa), 'All planning areas');
+  applyYears(F.y0, F.y1);
+
+  fr.onchange = e => { F.region = e.target.value; render(); };
+  ft.onchange = e => { F.town = e.target.value; render(); };
+  fp.onchange = e => { F.pa = e.target.value; render(); };
+  $('#fu').onchange = e => { F.utype = e.target.value; render(); };
+  $('#fy0').oninput = () => onYear(0);
+  $('#fy1').oninput = () => onYear(1);
+  $('#fn0').onchange = onYearNum;
+  $('#fn1').onchange = onYearNum;
+  let t; $('#fq').oninput = e => { clearTimeout(t); t = setTimeout(() => { F.q = e.target.value.trim().toLowerCase(); render(); }, 160); };
+  $('#freset').onclick = () => {
+    F = {region:'', town:'', pa:'', y0:m.year_min, y1:m.year_max, q:'', utype:''};
+    fr.value = ft.value = fp.value = $('#fu').value = ''; $('#fq').value = '';
+    applyYears(m.year_min, m.year_max); render();
+  };
+  $('#fcsv').onclick = downloadCsv;
+  $('#frail').onchange = e => {
+    SHOW_RAIL = e.target.checked;
+    ['rail-open','rail-building'].forEach(id => {
+      if (MAP && MAP.getLayer(id))
+        MAP.setLayoutProperty(id, 'visibility', SHOW_RAIL ? 'visible' : 'none');
+    });
+    setStationVis();
+    mapLegend(filtered().filter(b => b.lat != null));
+  };
+  $('#fstn').onchange = e => { SHOW_STN = e.target.checked; setStationVis(); };
+  $('#fnames').onchange = e => {
+    SHOW_NAMES = e.target.checked;
+    if (MAP && MAP.getLayer('estate-labels'))
+      MAP.setLayoutProperty('estate-labels', 'visibility', SHOW_NAMES ? 'visible' : 'none');
+    setBasemapLabels(!SHOW_NAMES);
+  };
+
+  $('#src').innerHTML = m.sources.map(s =>
+    `<tr><td style="color:var(--text-secondary);font-weight:600">${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td></tr>`).join('');
+
+  render();
+}
+
+/* The slider and the two number boxes are two views of one range; every edit routes
+   through applyYears so they can never drift apart. */
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+function applyYears(a, b){
+  const lo = +$('#fy0').min, hi = +$('#fy0').max;
+  a = Number.isFinite(a) ? clamp(Math.round(a), lo, hi) : lo;
+  b = Number.isFinite(b) ? clamp(Math.round(b), lo, hi) : hi;
+  if (a > b) [a, b] = [b, a];
+  F.y0 = a; F.y1 = b;
+  $('#fy0').value = a; $('#fy1').value = b;
+  $('#fn0').value = a; $('#fn1').value = b;
+  paintYears();
+}
+
+/* Slider handles must not cross: the one being dragged pushes against the other. */
+function onYear(which){
+  let a = +$('#fy0').value, b = +$('#fy1').value;
+  if (a > b){ if (which === 0) a = b; else b = a; }
+  applyYears(a, b);
+  scheduleRender();
+}
+
+/* Number boxes commit on blur/Enter, so a half-typed "19" is never clamped mid-keystroke. */
+function onYearNum(){
+  applyYears(parseInt($('#fn0').value, 10), parseInt($('#fn1').value, 10));
+  render();
+}
+
+function paintYears(){
+  const lo = +$('#fy0').min, hi = +$('#fy0').max, span = (hi - lo) || 1;
+  const f = $('#yrfill');
+  // thumbs are 15px wide, so inset the fill by half a thumb at each end to line up
+  f.style.left = `calc(${(F.y0 - lo) / span * 100}% + ${7.5 - (F.y0 - lo) / span * 15}px)`;
+  f.style.width = `calc(${(F.y1 - F.y0) / span * 100}% - ${(F.y1 - F.y0) / span * 15}px)`;
+}
+
+/* Dragging fires continuously; re-rendering 10.8k rows + the map on every tick would
+   stutter, so coalesce to roughly 8 frames a second while the handle is moving. */
+let renderQueued = false, lastRenderAt = 0;
+function scheduleRender(){
+  const now = performance.now();
+  if (now - lastRenderAt > 120){ lastRenderAt = now; render(); return; }
+  if (renderQueued) return;
+  renderQueued = true;
+  setTimeout(() => { renderQueued = false; lastRenderAt = performance.now(); render(); }, 130);
+}
+
+function filtered(){
+  return DB.blocks.filter(b =>
+    (!F.region || b.region === F.region) &&
+    (!F.town || b.town === F.town) &&
+    (!F.pa || b.pa === F.pa) &&
+    b.top >= F.y0 && b.top <= F.y1 &&
+    (!F.utype || b[F.utype] > 0) &&
+    (!F.q || b.addr.toLowerCase().includes(F.q) || (b.postal || '').includes(F.q)));
+}
+
+function render(){
+  const rows = filtered();
+  tiles(rows); drawMap(rows); estateTable(rows); yearChart(rows); mixChart(rows); paChart(rows); mopChart(rows); table(rows);
+}
+
+/* ---------- tiles ---------- */
+function tiles(rows){
+  const units = rows.reduce((a, b) => a + uOf(b), 0);
+  const yrs = rows.map(b => b.top);
+  const med = arr => { if (!arr.length) return 0; const s = [...arr].sort((a,b)=>a-b); return s[Math.floor(s.length/2)]; };
+  const rent = rows.reduce((a,b) => a + b.urent, 0);
+  const t = [
+    ['Blocks', fmt(rows.length), DB.meta.blocks === rows.length ? 'all residential blocks'
+      : (F.utype ? 'containing ' : 'of ') + (F.utype ? (TYPES.find(t=>t.k===F.utype)||{}).lbl + ' flats' : fmt(DB.meta.blocks) + ' total')],
+    [uLabel(), fmt(units), rows.length ? `avg ${Math.round(units/rows.length)} per block` : ''],
+    ['Median TOP year', yrs.length ? med(yrs) : '—', yrs.length ? `${DB.meta.this_year - med(yrs)} years old` : ''],
+    ['Planning areas', new Set(rows.map(b=>b.pa).filter(Boolean)).size, `${new Set(rows.map(b=>b.town)).size} HDB towns`],
+    ['Rental units', fmt(rent), units ? `${(rent/units*100).toFixed(1)}% of stock` : ''],
+  ];
+  $('#tiles').innerHTML = t.map(x =>
+    `<div class="tile"><div class="k">${x[0]}</div><div class="v">${x[1]}</div><div class="s">${x[2]}</div></div>`).join('');
+}
+
+/* ---------- map ---------- */
+/* Ordinal ramp as literal hex: Mapbox paint expressions cannot read CSS variables.
+   Mirrors --ord-1..5. The dark ramp runs the other way on purpose — on a dark ground
+   the bright end is the loud one, so reversing it keeps the newest estates the
+   salient end in both themes instead of flipping emphasis to the oldest. */
+const ORD_HEX = {
+  light: ['#86b6ef','#5598e7','#2a78d6','#1c5cab','#104281'],
+  dark:  ['#256abf','#3987e5','#6da7ec','#9ec5f4','#cde2fb'],
+};
+const themeNow = () => document.documentElement.getAttribute('data-theme')
+  || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+let MAP = null, MAP_MODE = null, MAP_PTS = [], LAST_FIT = null;
+let RAIL = null, STN = null, SHOW_RAIL = true, SHOW_NAMES = true, SHOW_STN = true;
+
+/* MRT/LRT geometry from OpenStreetMap, drawn in the operators' own line colours.
+   Those are identity colours riders already know, so they are not drawn from the
+   report's categorical palette — but they sit UNDER the block dots and stay thin
+   and semi-transparent so they read as reference geography, not as data. */
+async function loadJSON(file){
+  try {
+    const r = await fetch(BASE + file);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) {
+    console.warn(file + ' unavailable:', e.message);
+    return {type:'FeatureCollection', features:[]};
+  }
+}
+
+async function loadRail(){
+  if (RAIL) return RAIL;
+  [RAIL, STN] = await Promise.all([loadJSON('rail.geojson'), loadJSON('stations.geojson')]);
+  return RAIL;
+}
+
+function addRailLayers(){
+  if (!RAIL || !RAIL.features.length || MAP.getSource('rail')) return;
+  MAP.addSource('rail', {type:'geojson', data: RAIL});
+  const vis = SHOW_RAIL ? 'visible' : 'none';
+  const width = ['interpolate', ['linear'], ['zoom'], 9, 1.2, 12, 2.2, 15, 3.6, 18, 6];
+  MAP.addLayer({id:'rail-open', type:'line', source:'rail',
+    filter:['==', ['get','building'], 0],
+    layout:{'line-cap':'round', 'line-join':'round', visibility: vis},
+    paint:{'line-color':['get','colour'], 'line-width':width,
+           'line-opacity':['case', ['==', ['get','lrt'], 1], 0.5, 0.7]}});
+  MAP.addLayer({id:'rail-building', type:'line', source:'rail',
+    filter:['==', ['get','building'], 1],
+    layout:{'line-cap':'butt', 'line-join':'round', visibility: vis},
+    paint:{'line-color':['get','colour'], 'line-width':width,
+           'line-opacity':0.5, 'line-dasharray':[2, 2]}});
+}
+
+function toGeoJSON(pts){
+  const umax = Math.max(1, ...pts.map(p => uOf(p)));
+  return {type:'FeatureCollection', features: pts.map(p => ({
+    type:'Feature',
+    geometry:{type:'Point', coordinates:[p.lon, p.lat]},
+    properties:{a:p.addr, t:p.town, pa:p.pa || '—', u:uOf(p), f:p.floors,
+                top:p.top, mop:p.mop, po:p.postal || '', d:p.dec.o,
+                bl:p.blk, sf:p.streetFull || p.street, pj:p.project || '',
+                r:Math.sqrt(uOf(p) / umax)},
+  }))};
+}
+
+function circlePaint(mode){
+  const c = ORD_HEX[mode];
+  return {
+    'circle-color': ['match', ['get','d'], 1,c[0], 2,c[1], 3,c[2], 4,c[3], 5,c[4], c[2]],
+    // radius stays proportional to sqrt(units); the multiplier opens up with zoom
+    'circle-radius': ['interpolate', ['linear'], ['zoom'],
+      9,  ['max', 1.1, ['*', ['get','r'], 3.2]],
+      12, ['max', 2.0, ['*', ['get','r'], 9]],
+      15, ['max', 3.5, ['*', ['get','r'], 22]],
+      18, ['max', 6.0, ['*', ['get','r'], 52]]],
+    'circle-opacity': 0.85,
+    // surface-coloured ring separates overlapping marks once they are big enough to need it
+    'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 12, 0, 14.5, 1],
+    'circle-stroke-color': mode === 'dark' ? '#1a1a19' : '#fcfcfb',
+    'circle-stroke-opacity': 0.75,
+  };
+}
+
+/* Label position is the median lat/lon of the estate's blocks, not the mean: an estate
+   with an outlying pocket of blocks would otherwise pull its label into empty space. */
+function estateCentroids(pts){
+  const by = new Map();
+  pts.forEach(p => {
+    let e = by.get(p.town);
+    if (!e) by.set(p.town, e = {lats:[], lons:[], units:0});
+    e.lats.push(p.lat); e.lons.push(p.lon); e.units += uOf(p);
+  });
+  const med = a => { a.sort((x, y) => x - y); return a[Math.floor(a.length / 2)]; };
+  return {type:'FeatureCollection', features:[...by.entries()].map(([name, e]) => ({
+    type:'Feature',
+    geometry:{type:'Point', coordinates:[med(e.lons), med(e.lats)]},
+    properties:{name, units:e.units},
+  }))};
+}
+
+/* The basemap already labels Yishun, Bedok, Tampines and the like, and its airport layer
+   prints air-base codes (WSAG, TGA, QPG) that mean nothing here. Turn both off while our
+   own estate names are showing, and restore them when they are not. */
+function setBasemapLabels(on){
+  ['settlement-subdivision-label', 'airport-label'].forEach(id => {
+    if (MAP.getLayer(id)) MAP.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  });
+}
+
+function addEstateLabels(){
+  if (MAP.getSource('estates')) return;
+  MAP.addSource('estates', {type:'geojson', data: estateCentroids(MAP_PTS)});
+  MAP.addLayer({id:'estate-labels', type:'symbol', source:'estates',
+    layout:{
+      'text-field':['get','name'],
+      'text-font':['DIN Pro Medium', 'Arial Unicode MS Bold'],
+      'text-size':['interpolate', ['linear'], ['zoom'], 9, 10, 12, 12.5, 16, 17],
+      'text-max-width':8, 'text-padding':2, 'text-allow-overlap':false,
+      'symbol-sort-key':['-', 0, ['get','units']],   // larger estates win label collisions
+      visibility: SHOW_NAMES ? 'visible' : 'none',
+    },
+    paint:{
+      'text-color': MAP_MODE === 'dark' ? '#ffffff' : '#0b0b0b',
+      'text-halo-color': MAP_MODE === 'dark' ? '#121211' : '#fcfcfb',
+      'text-halo-width':1.7, 'text-halo-blur':0.4,
+    }});
+}
+
+/* Transit convention: a station is a hollow mark, not a filled one — surface-coloured
+   centre with a line-coloured ring, so it never reads as a data point. Interchanges are
+   larger with a neutral ring, since no single line owns them. Stations sit ABOVE the block
+   dots: the whole point of the overlay is judging which blocks sit near one, and under a
+   dense cluster they would simply disappear. */
+function addStationLayers(){
+  if (!STN || !STN.features.length || MAP.getSource('stations')) return;
+  const dark = MAP_MODE === 'dark';
+  const surface = dark ? '#1a1a19' : '#fcfcfb';
+  const vis = (SHOW_STN && SHOW_RAIL) ? 'visible' : 'none';
+  const big = ['==', ['get','interchange'], 1];
+  MAP.addSource('stations', {type:'geojson', data: STN});
+  MAP.addLayer({id:'stn-dot', type:'circle', source:'stations',
+    layout:{visibility: vis},
+    paint:{
+      'circle-color': surface,
+      'circle-radius':['interpolate', ['linear'], ['zoom'],
+        10, ['case', big, 3.0, 1.9],
+        13, ['case', big, 5.0, 3.2],
+        16, ['case', big, 8.0, 5.4]],
+      'circle-stroke-width':['interpolate', ['linear'], ['zoom'], 10, 1.3, 13, 1.8, 16, 2.4],
+      'circle-stroke-color':['case', big, (dark ? '#c3c2b7' : '#52514e'), ['get','colour']],
+      // still-building stations read as faint, so they are not mistaken for open ones
+      'circle-opacity':['case', ['==', ['get','building'], 1], 0.35, 0.95],
+      'circle-stroke-opacity':['case', ['==', ['get','building'], 1], 0.4, 0.9],
+    }});
+  MAP.addLayer({id:'stn-label', type:'symbol', source:'stations', minzoom:12.5,
+    layout:{
+      'text-field':['get','name'],
+      'text-font':['DIN Pro Regular', 'Arial Unicode MS Regular'],
+      'text-size':['interpolate', ['linear'], ['zoom'], 12.5, 9.5, 16, 12],
+      'text-offset':[0, 1.05], 'text-anchor':'top', 'text-padding':3,
+      'text-allow-overlap':false, 'text-optional':true,
+      'symbol-sort-key':['case', big, 0, 1],   // interchanges win label collisions
+      visibility: vis,
+    },
+    paint:{
+      'text-color': dark ? '#c3c2b7' : '#52514e',
+      'text-halo-color': surface, 'text-halo-width':1.5, 'text-halo-blur':0.3,
+      'text-opacity':['case', ['==', ['get','building'], 1], 0.5, 1],
+    }});
+}
+
+function addMapLayers(){
+  addRailLayers();          // first, so the block dots draw above the lines
+  if (!MAP.getSource('blocks'))
+    MAP.addSource('blocks', {type:'geojson', data: toGeoJSON(MAP_PTS)});
+  if (!MAP.getLayer('blocks-dots'))
+    MAP.addLayer({id:'blocks-dots', type:'circle', source:'blocks', paint: circlePaint(MAP_MODE)});
+  addStationLayers();       // above the block dots - proximity is the point of the overlay
+  addEstateLabels();        // last, so names sit above the dots
+  setBasemapLabels(!SHOW_NAMES);
+}
+
+/* PropertyGuru search deep-link. Verified Sept 2026: /property-for-sale?freetext=<query>
+   returns a parsed search page; the older /singapore-property-listing/ path now 403s.
+   If they change the scheme again, this constant is the only thing to update. */
+const PG_BASE = 'https://www.propertyguru.com.sg/property-for-sale?freetext=';
+/* HDB flat-type codes. Verified live: property_type=H with property_type_code[]=4A
+   returns "HDB 4 Room Flats for Sale - <location>". The remaining codes follow the same
+   documented scheme; unrecognised ones are ignored by their search rather than erroring. */
+const PG_CODES = {
+  u1:['1R'], u2:['2A','2I','2S'], u3:['3A','3NG','3I','3S'],
+  u4:['4A','4NG','4I','4S','4STD'], u5:['5A','5I','5S','5PA'],
+  uex:['EA','EM','EC'], uoth:['MG'],
+};
+function pgUrl(q){
+  let u = PG_BASE + encodeURIComponent(q) + '&property_type=H';
+  (PG_CODES[F.utype] || []).forEach(c => { u += '&property_type_code%5B%5D=' + c; });
+  return u;
+}
+
+let POPUP = null;
+function showBlockPopup(lngLat, p){
+  if (POPUP) POPUP.remove();
+  const blockQ = `${p.bl} ${p.sf}`;
+  // narrowest to broadest: one block often has no live listing, so offer the fallbacks
+  const links = [[`Listings in block ${p.bl}`, blockQ]];
+  if (p.pj) links.push([`Listings in ${p.pj}`, p.pj]);
+  links.push([`Listings on ${p.sf}`, p.sf]);
+  POPUP = new mapboxgl.Popup({closeButton:true, maxWidth:'272px', offset:11})
+    .setLngLat(lngLat)
+    .setHTML(`<div class="pop"><b>${blockQ}</b>
+      ${p.pj ? `<div class="proj">${p.pj}</div>` : ''}
+      <div class="d">${p.t} · ${p.pa}<br>${fmt(p.u)} units · ${p.f} storeys<br>
+      TOP ${p.top} · MOP est. ${p.mop}${p.po ? '<br>Singapore ' + p.po : ''}</div>
+      <div class="pglinks">${links.map(([lbl, q]) =>
+        `<a href="${pgUrl(q)}" target="_blank" rel="noopener noreferrer">${lbl} &#8599;</a>`).join('')}
+      </div>
+      <div class="pgnote">PropertyGuru searches, opening in a new tab. A single block often has
+      no active listing — the project and street searches are the fallbacks.</div></div>`)
+    .addTo(MAP);
+}
+
+const tipHtml = p => `<b>${p.a}</b>${p.pj ? `<br><span style="color:var(--accent);font-weight:600">${p.pj}</span>` : ''}<br><span class="d">${p.t} · ${p.pa}<br>
+  ${fmt(p.u)} units · ${p.f} storeys<br>TOP ${p.top} · MOP est. ${p.mop}
+  ${p.po ? '<br>Singapore ' + p.po : ''}</span>`;
+
+function wireMapHover(){
+  MAP.on('mousemove', 'blocks-dots', e => {
+    MAP.getCanvas().style.cursor = 'pointer';
+    if (e.features && e.features[0]) showTip(e.originalEvent, tipHtml(e.features[0].properties));
+  });
+  MAP.on('mouseleave', 'blocks-dots', () => { MAP.getCanvas().style.cursor = ''; hideTip(); });
+  MAP.on('click', 'blocks-dots', e => {
+    if (!e.features || !e.features[0]) return;
+    hideTip();
+    showBlockPopup(e.features[0].geometry.coordinates.slice(), e.features[0].properties);
+  });
+}
+
+function fitMap(pts){
+  if (!pts.length) return;
+  const b = new mapboxgl.LngLatBounds();
+  pts.forEach(p => b.extend([p.lon, p.lat]));
+  MAP.fitBounds(b, {padding: 44, duration: 650, maxZoom: 15.5});
+}
+
+function drawMap(rows){
+  const host = $('#map');
+  const pts = rows.filter(b => b.lat != null);
+  if (!HAS_BASEMAP){ host.classList.add('svgfallback'); drawMapSvg(pts, host); mapLegend(pts); return; }
+  MAP_PTS = pts;
+  // refit only when the geography changes; the year slider must not re-zoom on every tick
+  const mode = themeNow(), sig = JSON.stringify([F.region, F.town, F.pa, F.q]);
+  if (!MAP){
+    MAP_MODE = mode;
+    MAP = new mapboxgl.Map({container: host, style: window.MAP_CONFIG.styles[mode],
+      center:[103.82, 1.352], zoom:10.4, attributionControl:true});
+    MAP.addControl(new mapboxgl.NavigationControl({showCompass:false}), 'top-right');
+    MAP.on('style.load', addMapLayers);   // setStyle wipes sources, so re-add every time
+    MAP.on('load', () => { wireMapHover(); fitMap(MAP_PTS); LAST_FIT = sig; });
+  } else if (mode !== MAP_MODE){
+    MAP_MODE = mode;
+    MAP.setStyle(window.MAP_CONFIG.styles[mode]);   // style.load re-adds with the new paint
+  } else {
+    const src = MAP.getSource('blocks');
+    if (src) src.setData(toGeoJSON(pts));
+    const esrc = MAP.getSource('estates');
+    if (esrc) esrc.setData(estateCentroids(pts));
+    if (sig !== LAST_FIT){ fitMap(pts); LAST_FIT = sig; }
+  }
+  mapLegend(pts);
+}
+
+/* No token or no network: plot the same coordinates as a plain SVG scatter. */
+function drawMapSvg(pts, host){
+  host.innerHTML = '';
+  if (!pts.length){ host.innerHTML = '<p class="note">No geocoded blocks in this selection.</p>'; return; }
+  const W = 900, H = 520, P = 10;
+  const la = pts.map(p => p.lat), lo = pts.map(p => p.lon);
+  const la0 = Math.min(...la), la1 = Math.max(...la), lo0 = Math.min(...lo), lo1 = Math.max(...lo);
+  const k = Math.cos((la0 + la1) / 2 * Math.PI / 180);
+  const dw = (lo1 - lo0) * k, dh = (la1 - la0);
+  const sc = Math.min((W - 2*P) / (dw || 1), (H - 2*P) / (dh || 1));
+  const ox = (W - dw*sc)/2, oy = (H - dh*sc)/2;
+  const X = p => ox + (p.lon - lo0) * k * sc, Y = p => oy + (la1 - p.lat) * sc;
+  const umax = Math.max(...pts.map(p => uOf(p)));
+  const R = u => 1.1 + 4.4 * Math.sqrt(u / umax);
+  const s = svgRoot(W, H);
+  s.setAttribute('aria-label', 'HDB blocks in Singapore by decade of completion');
+  [...pts].sort((a,b) => a.top - b.top).forEach(p => {
+    const c = el('circle', {cx:X(p).toFixed(1), cy:Y(p).toFixed(1), r:R(uOf(p)).toFixed(2),
+      fill:ORD(p.dec.o), 'fill-opacity':0.82}, s);
+    c.addEventListener('mouseenter', e => showTip(e, tipHtml(
+      {a:p.addr, t:p.town, pa:p.pa || '—', u:uOf(p), f:p.floors, top:p.top, mop:p.mop,
+       po:p.postal, pj:p.project, bl:p.blk, sf:p.streetFull})));
+    c.addEventListener('mousemove', e => showTip(e, tip.innerHTML));
+    c.addEventListener('mouseleave', hideTip);
+  });
+  host.appendChild(s);
+}
+
+function mapLegend(pts){
+  const counts = {};
+  pts.forEach(p => counts[p.dec.k] = (counts[p.dec.k] || 0) + uOf(p));
+  $('#maplegend').innerHTML =
+    `<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">Completed</div>` +
+    DECADES.map(d => `<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:12px">
+      <span style="width:11px;height:11px;border-radius:3px;background:${ORD(d.o)};flex:none"></span>
+      <span style="color:var(--text-secondary)">${d.lbl}</span>
+      <span style="margin-left:auto;color:var(--text-muted);font-variant-numeric:tabular-nums">${fmt(counts[d.k]||0)}</span>
+    </div>`).join('') +
+    `<div style="margin-top:12px;font-size:11px;color:var(--text-muted);line-height:1.5">Dot area ∝ dwelling units. Hover for detail, click for listings; scroll to zoom.</div>`
+    + railLegend();
+}
+
+function setStationVis(){
+  const vis = (SHOW_STN && SHOW_RAIL) ? 'visible' : 'none';
+  ['stn-dot', 'stn-label'].forEach(id => {
+    if (MAP && MAP.getLayer(id)) MAP.setLayoutProperty(id, 'visibility', vis);
+  });
+}
+
+function railLegend(){
+  if (!SHOW_RAIL || !RAIL || !RAIL.features.length) return '';
+  // the three LRT networks share one colour, so they get one combined key
+  const seen = new Set();
+  const rows = [];
+  RAIL.features.forEach(f => {
+    const p = f.properties;
+    const key = p.lrt ? 'LRT' : p.ref;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rows.push({c:p.colour, lbl: p.lrt ? 'LRT networks' : p.name, b:p.building});
+  });
+  return `<div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">Rail</div>`
+    + rows.map(r => `<div class="railkey"><i style="background:${r.c}${r.b ? ';opacity:.55' : ''}"></i>
+        <span style="color:var(--text-secondary)">${r.lbl}${r.b ? ' <span style="color:var(--text-muted)">(building)</span>' : ''}</span></div>`).join('')
+    + (SHOW_STN && STN && STN.features.length
+        ? `<div class="railkey" style="margin-top:8px"><span style="width:9px;height:9px;border-radius:50%;
+             border:1.8px solid var(--text-secondary);background:var(--surface-1);flex:none;display:inline-block"></span>
+           <span style="color:var(--text-secondary)">Interchange</span></div>
+           <div class="railkey"><span style="width:7px;height:7px;border-radius:50%;
+             border:1.6px solid var(--series-1);background:var(--surface-1);flex:none;display:inline-block"></span>
+           <span style="color:var(--text-secondary)">Station</span></div>` : '')
+    + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">Dashed lines and faint
+       stations are under construction. Station names appear as you zoom in.
+       Geometry © OpenStreetMap contributors.</div></div>`;
+}
+
+/* ---------- shared axis frame ---------- */
+function frame(s, W, H, M, ymax, yfmt){
+  const ticks = 5;
+  for (let i = 0; i <= ticks; i++){
+    const v = ymax * i / ticks, y = H - M.b - (H - M.t - M.b) * (i/ticks);
+    el('line', {x1:M.l, x2:W - M.r, y1:y.toFixed(1), y2:y.toFixed(1), class:'gridline'}, s);
+    el('text', {x:M.l - 8, y:(y+3.5).toFixed(1), class:'tick', 'text-anchor':'end'}, s)
+      .textContent = yfmt ? yfmt(v) : fmt(Math.round(v));
+  }
+  el('line', {x1:M.l, x2:W - M.r, y1:H - M.b, y2:H - M.b, class:'axis'}, s);
+}
+const kfmt = v => v >= 1000 ? (v/1000) % 1 === 0 ? (v/1000)+'k' : (v/1000).toFixed(1)+'k' : Math.round(v);
+
+/* ---------- units completed per year ---------- */
+function yearChart(rows){
+  const host = $('#cYear'); host.innerHTML = '';
+  const by = new Map();
+  rows.forEach(b => by.set(b.top, (by.get(b.top) || 0) + uOf(b)));
+  const years = [...by.keys()].sort((a,b) => a-b);
+  if (!years.length){ host.innerHTML = '<p class="note">Nothing in this selection.</p>'; return; }
+  const y0 = years[0], y1 = years[years.length-1];
+  const all = []; for (let y = y0; y <= y1; y++) all.push([y, by.get(y) || 0]);
+  const W = 900, H = 260, M = {t:12, r:8, b:30, l:48};
+  const ymax = niceMax(Math.max(...all.map(a => a[1])));
+  const s = svgRoot(W, H);
+  frame(s, W, H, M, ymax, kfmt);
+  const iw = W - M.l - M.r, ph = H - M.t - M.b;
+  const bw = Math.max(1.2, iw/all.length - 2);
+  all.forEach(([y, v], i) => {
+    const x = M.l + i * (iw/all.length) + (iw/all.length - bw)/2;
+    const h = v/ymax * ph;
+    if (v > 0) {
+      const p = el('path', {d: barPath(x, H - M.b - h, bw, h, 2), fill: SER(1)}, s);
+      p.addEventListener('mouseenter', e => showTip(e,
+        `<b>${y}</b><br><span class="d">${fmt(v)} units<br>${fmt(rows.filter(b=>b.top===y).length)} blocks</span>`));
+      p.addEventListener('mousemove', e => showTip(e, tip.innerHTML));
+      p.addEventListener('mouseleave', hideTip);
+    }
+    const step = all.length > 60 ? 10 : all.length > 25 ? 5 : 2;
+    if (y % step === 0)
+      el('text', {x:(x+bw/2).toFixed(1), y:H - M.b + 15, class:'tick', 'text-anchor':'middle'}, s).textContent = y;
+  });
+  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = 'Dwelling units';
+  host.appendChild(s);
+}
+
+/* ---------- flat mix by decade (stacked) ---------- */
+function mixChart(rows){
+  const host = $('#cMix'); host.innerHTML = '';
+  const types = F.utype ? TYPES.filter(t => t.k === F.utype) : TYPES;
+  const data = DECADES.map(d => {
+    const o = {lbl:d.lbl, tot:0};
+    types.forEach(t => o[t.k] = 0);
+    rows.filter(b => b.dec.k === d.k).forEach(b => types.forEach(t => { o[t.k] += b[t.k]; o.tot += b[t.k]; }));
+    return o;
+  }).filter(d => d.tot > 0);
+  if (!data.length){ host.innerHTML = '<p class="note">Nothing in this selection.</p>'; return; }
+  const W = 560, H = 300, M = {t:12, r:8, b:44, l:48};
+  const ymax = niceMax(Math.max(...data.map(d => d.tot)));
+  const s = svgRoot(W, H);
+  frame(s, W, H, M, ymax, kfmt);
+  const iw = W - M.l - M.r, ph = H - M.t - M.b, step = iw/data.length;
+  const bw = Math.min(56, step - 12);
+  data.forEach((d, i) => {
+    const x = M.l + i*step + (step - bw)/2;
+    let acc = 0;
+    types.forEach(t => {
+      const v = d[t.k]; if (!v) return;
+      const h = v/ymax*ph, yTop = H - M.b - (acc + v)/ymax*ph;
+      acc += v;
+      // 2px surface gap between stacked segments, never a border
+      const p = el('rect', {x, y:yTop.toFixed(1), width:bw, height:Math.max(0.5, h-2).toFixed(1),
+        fill:SER(t.s), rx:1.5}, s);
+      p.addEventListener('mouseenter', e => showTip(e,
+        `<b>${t.lbl}</b> · ${d.lbl}<br><span class="d">${fmt(v)} units · ${(v/d.tot*100).toFixed(1)}% of decade</span>`));
+      p.addEventListener('mousemove', e => showTip(e, tip.innerHTML));
+      p.addEventListener('mouseleave', hideTip);
+    });
+    el('text', {x:(x+bw/2).toFixed(1), y:H - M.b + 16, class:'tick', 'text-anchor':'end',
+      transform:`rotate(-35 ${(x+bw/2).toFixed(1)} ${H-M.b+16})`}, s).textContent = d.lbl;
+  });
+  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = 'Dwelling units';
+  host.appendChild(s);
+  $('#lMix').innerHTML = types.map(t =>
+    `<span class="it"><span class="sw" style="background:${SER(t.s)}"></span>${t.lbl}</span>`).join('');
+}
+
+/* ---------- planning areas ---------- */
+function paChart(rows){
+  const host = $('#cPa'); host.innerHTML = '';
+  const by = new Map();
+  rows.forEach(b => { if (b.pa) by.set(b.pa, (by.get(b.pa)||0) + uOf(b)); });
+  const d = [...by.entries()].sort((a,b) => b[1]-a[1]).slice(0, 15);
+  if (!d.length){ host.innerHTML = '<p class="note">Nothing in this selection.</p>'; return; }
+  const rowH = 19, W = 560, M = {t:8, r:58, b:8, l:112};
+  const H = M.t + M.b + d.length*rowH;
+  const s = svgRoot(W, H);
+  const max = d[0][1], iw = W - M.l - M.r;
+  d.forEach(([name, v], i) => {
+    const y = M.t + i*rowH;
+    el('text', {x:M.l - 9, y:y + rowH/2 + 3.5, class:'tick', 'text-anchor':'end'}, s).textContent = name;
+    const w = Math.max(1, v/max*iw);
+    const p = el('path', {d:hbarPath(M.l, y+3, w, rowH-8, 2), fill:SER(1)}, s);
+    p.addEventListener('mouseenter', e => showTip(e,
+      `<b>${name}</b><br><span class="d">${fmt(v)} units · ${fmt(rows.filter(b=>b.pa===name).length)} blocks</span>`));
+    p.addEventListener('mousemove', e => showTip(e, tip.innerHTML));
+    p.addEventListener('mouseleave', hideTip);
+    // direct label at the data end — selective, one per bar, this chart has no x-axis
+    el('text', {x:M.l + w + 7, y:y + rowH/2 + 3.5, class:'tick'}, s).textContent = kfmt(v);
+  });
+  host.appendChild(s);
+}
+
+/* ---------- upcoming MOP ---------- */
+function mopChart(rows){
+  const host = $('#cMop'); host.innerHTML = '';
+  const now = DB.meta.this_year;
+  const by = new Map();
+  rows.forEach(b => { if (b.mop >= now) by.set(b.mop, (by.get(b.mop)||0) + uOf(b)); });
+  const d = [...by.entries()].sort((a,b) => a[0]-b[0]);
+  if (!d.length){ host.innerHTML = '<p class="note">No blocks in this selection are still within their MOP window.</p>'; return; }
+  const W = 900, H = 210, M = {t:12, r:8, b:30, l:48};
+  const ymax = niceMax(Math.max(...d.map(x => x[1])));
+  const s = svgRoot(W, H);
+  frame(s, W, H, M, ymax, kfmt);
+  const iw = W - M.l - M.r, ph = H - M.t - M.b, step = iw/d.length;
+  const bw = Math.min(64, step - 14);
+  d.forEach(([y, v], i) => {
+    const x = M.l + i*step + (step-bw)/2, h = v/ymax*ph;
+    const p = el('path', {d:barPath(x, H - M.b - h, bw, h, 3), fill:SER(1)}, s);
+    p.addEventListener('mouseenter', e => showTip(e,
+      `<b>${y}</b><br><span class="d">${fmt(v)} units reach MOP<br>${fmt(rows.filter(b=>b.mop===y).length)} blocks</span>`));
+    p.addEventListener('mousemove', e => showTip(e, tip.innerHTML));
+    p.addEventListener('mouseleave', hideTip);
+    el('text', {x:(x+bw/2).toFixed(1), y:H - M.b + 15, class:'tick', 'text-anchor':'middle'}, s).textContent = y;
+  });
+  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = 'Dwelling units';
+  host.appendChild(s);
+}
+
+/* ---------- estate summary ---------- */
+const ECOLS = [
+  ['town','Estate','t'], ['blocks','Blocks','n'], ['units','Units','n'],
+  ['span','TOP range','t'], ['age','Median age','n'], ['pa','Main planning area','t'],
+  ['region','Region','t'], ['mopUp','Units still in MOP','n'],
+];
+let eSort = 'units', eDir = -1;
+
+function estateAgg(rows){
+  const by = new Map();
+  rows.forEach(b => {
+    let e = by.get(b.town);
+    if (!e) by.set(b.town, e = {town:b.town, blocks:0, units:0, tops:[], pa:{}, region:{}, mopUp:0});
+    e.blocks++; e.units += uOf(b); e.tops.push(b.top);
+    if (b.mop > DB.meta.this_year) e.mopUp += uOf(b);
+    if (b.pa) e.pa[b.pa] = (e.pa[b.pa]||0) + uOf(b);
+    if (b.region) e.region[b.region] = (e.region[b.region]||0) + uOf(b);
+  });
+  const top1 = o => { const k = Object.keys(o); return k.length ? k.reduce((a,b)=>o[a]>=o[b]?a:b) : ''; };
+  return [...by.values()].map(e => {
+    const t = e.tops.sort((a,b)=>a-b);
+    const med = t[Math.floor(t.length/2)];
+    return {...e, span:`${t[0]}–${t[t.length-1]}`, age: DB.meta.this_year - med,
+            pa: top1(e.pa), region: top1(e.region)};
+  });
+}
+
+function estateTable(rows){
+  const d = estateAgg(rows).sort((a,b) => {
+    const x = a[eSort], y = b[eSort];
+    return (typeof x === 'string' ? x.localeCompare(y) : x - y) * eDir;
+  });
+  $('#ethead').innerHTML = '<tr>' + ECOLS.map(c =>
+    `<th data-k="${c[0]}" class="${c[2]==='t'?'':'num'}">${c[1]}${eSort===c[0]?` <span class="ar">${eDir>0?'▲':'▼'}</span>`:''}</th>`).join('') + '</tr>';
+  $('#ethead').querySelectorAll('th').forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    if (eSort === k) eDir *= -1;
+    else { eSort = k; eDir = ECOLS.find(c => c[0] === k)[2] === 't' ? 1 : -1; }
+    estateTable(filtered());
+  });
+  $('#etbody').innerHTML = d.map(e => `<tr data-town="${e.town}" style="cursor:pointer">` +
+    ECOLS.map(c => {
+      const v = e[c[0]];
+      return `<td class="${c[2]==='t'?'':'num'}">${c[2]==='n'?fmt(v):(v||'—')}</td>`;
+    }).join('') + '</tr>').join('');
+  $('#etbody').querySelectorAll('tr').forEach(tr => tr.onclick = () => {
+    const t = tr.dataset.town;
+    F.town = F.town === t ? '' : t;
+    $('#ft').value = F.town;
+    render();
+    document.querySelector('.filters').scrollIntoView({behavior:'smooth', block:'nearest'});
+  });
+}
+
+/* ---------- table ---------- */
+const COLS = [
+  ['addr','Block','t'], ['town','HDB town','t'], ['pa','URA planning area','t'],
+  ['region','Region','t'], ['units','Units','n'], ['floors','Storeys','n'],
+  ['top','TOP','y'], ['mop','MOP est.','y'], ['lat','Lat','n'], ['lon','Lon','n'],
+  ['postal','Postal','t'],
+];
+function table(rows){
+  const sorted = [...rows].sort((a,b) => {
+    const x = sortKey === 'units' ? uOf(a) : a[sortKey];
+    const y = sortKey === 'units' ? uOf(b) : b[sortKey];
+    if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === 'string' ? x.localeCompare(y) : x - y) * sortDir;
+  });
+  const show = sorted.slice(0, 500);
+  $('#thead').innerHTML = '<tr>' + COLS.map(c =>
+    `<th data-k="${c[0]}" class="${c[2]==='t'?'':'num'}">${c[1]}${sortKey===c[0]?` <span class="ar">${sortDir>0?'▲':'▼'}</span>`:''}</th>`).join('') + '</tr>';
+  $('#thead').querySelectorAll('th').forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    if (sortKey === k) sortDir *= -1;
+    else { sortKey = k; sortDir = COLS.find(c => c[0] === k)[2] === 't' ? 1 : -1; }
+    table(filtered());
+  });
+  $('#tbody').innerHTML = show.map(b => '<tr>' + COLS.map(c => {
+    let v = c[0] === 'units' ? uOf(b) : b[c[0]];
+    if (c[0] === 'lat' || c[0] === 'lon') v = v == null ? '—' : v.toFixed(5);
+    else if (c[2] === 'y') v = String(v);          // years carry no thousands separator
+    else if (c[2] === 'n') v = fmt(v);
+    return `<td class="${c[2]==='t'?'':'num'}">${v === '' || v == null ? '—' : v}</td>`;
+  }).join('') + '</tr>').join('');
+  $('#tcount').textContent = `${fmt(rows.length)} blocks match the current filters` +
+    (rows.length > 500 ? ' — showing the first 500, sorted. Download the CSV for the full set.' : '.');
+  $('#tnote').textContent = 'Click any column header to sort.';
+}
+
+function downloadCsv(){
+  const rows = filtered();
+  const head = ['blk_no','street','town','planning_area','region','lat','lon','postal',
+    'top_year','mop_year_est','total_units','max_floor_lvl','units_1r','units_2r','units_3r',
+    'units_4r','units_5r','units_exec','units_other','units_rental'];
+  const line = a => a.map(v => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(',');
+  const body = rows.map(b => line([b.blk, b.street, b.town, b.pa, b.region, b.lat, b.lon,
+    b.postal, b.top, b.mop, b.units, b.floors, b.u1, b.u2, b.u3, b.u4, b.u5, b.uex, b.uoth, b.urent]));
+  const blob = new Blob([line(head) + '\n' + body.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `hdb_blocks_${rows.length}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
