@@ -26,3 +26,6 @@ data/resale_agg.json
 # demo recording intermediates (docs/demo.gif IS tracked)
 docs/*.mp4
 docs/*.webm
+
+# 15 MB font source, re-downloaded by build_font.py; only the subset is committed
+data/NotoSansSC-VF.otf
