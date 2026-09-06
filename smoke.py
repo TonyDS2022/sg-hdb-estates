@@ -7,14 +7,15 @@ async def m():
     ok = True
     async with async_playwright() as pw:
         b = await pw.chromium.launch(args=['--use-gl=swiftshader','--enable-unsafe-swiftshader'])
-        for label, u in [('plain', URL), ('deep link', URL + '#b=18%7CCANTONMENT%20CL')]:
+        for label, u in [('plain', URL), ('deep link', URL + '#b=18%7CCANTONMENT%20CL'),
+                         ('chinese', URL + '?lang=zh')]:
             pg = await b.new_page(viewport={'width':1380,'height':1000})
             errs = []
             pg.on('pageerror', lambda e: errs.append('pageerror: ' + str(e)))
             pg.on('console', lambda m2: errs.append('console.error: ' + m2.text[:120]) if m2.type == 'error' else None)
             await pg.goto(u, wait_until='networkidle', timeout=90000)
             await pg.wait_for_timeout(12000)
-            checks = await pg.evaluate("""(()=>({
+            checks = await pg.evaluate(r"""(()=>({
               errorCard: !!document.querySelector('#app .card h2') &&
                          /went wrong|Could not load/.test(document.querySelector('#app .card h2').textContent),
               tiles:  document.querySelectorAll('#tiles .tile').length,
@@ -22,9 +23,12 @@ async def m():
               srcRows:document.querySelectorAll('#src tr').length,
               tblRows:document.querySelectorAll('#tbody tr').length,
               mapDots:document.querySelectorAll('#map canvas').length,
+              // rows existing is not the same as rows being right: a broken template
+              // renders "undefined" happily and every count still passes
+              undef:  (document.body.innerText.match(/undefined|NaN|\[object /g) || []).length,
             }))()""")
             bad = (checks['errorCard'] or checks['tiles'] < 5 or checks['charts'] < 10
-                   or checks['srcRows'] < 3 or checks['tblRows'] < 10 or errs)
+                   or checks['srcRows'] < 3 or checks['tblRows'] < 10 or checks['undef'] or errs)
             ok = ok and not bad
             print(f"  [{'FAIL' if bad else 'PASS'}] {label:<10} {checks}")
             if errs: print('          errors:', errs[:3])
