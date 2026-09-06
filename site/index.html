@@ -122,34 +122,12 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 .mapboxgl-ctrl-attrib a,.mapboxgl-ctrl-attrib{color:var(--text-muted)!important}
 .mapboxgl-ctrl-logo{opacity:.5}
 .mapboxgl-canvas:focus{outline:none}
-.mapboxgl-popup-content{background:var(--surface-1)!important;color:var(--text-primary);
-  border:1px solid var(--border);border-radius:9px;padding:12px 14px 11px;
-  box-shadow:0 8px 26px rgba(0,0,0,.2);font-size:12.5px;line-height:1.5}
-.mapboxgl-popup-tip{border-top-color:var(--surface-1)!important;border-bottom-color:var(--surface-1)!important;
-  border-left-color:var(--surface-1)!important;border-right-color:var(--surface-1)!important}
-.mapboxgl-popup-close-button{color:var(--text-muted);font-size:18px;padding:1px 7px;
-  background:none!important;right:2px;top:1px}
-.mapboxgl-popup-close-button:hover{color:var(--text-primary)}
-.pop b{font-weight:620}
-.pop .proj{color:var(--accent);font-weight:600;margin-top:1px}
-.pop .d{color:var(--text-secondary);margin-top:3px}
 .pglinks{display:flex;flex-direction:column;gap:5px;margin-top:10px;padding-top:9px;
   border-top:1px solid var(--border)}
 .pglinks a{color:var(--accent);text-decoration:none;font-weight:560}
 .pglinks a:hover{text-decoration:underline}
 .pgnote{color:var(--text-muted);font-size:10.5px;margin-top:8px;line-height:1.4}
-.sales{margin-top:10px;padding-top:9px;border-top:1px solid var(--border)}
-.sales h4{margin:0 0 6px;font-size:10.5px;font-weight:650;color:var(--text-muted);
-  text-transform:uppercase;letter-spacing:.05em}
-.sales table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
-.sales td{padding:2px 0;border:0;white-space:nowrap}
-.sales td.p{text-align:right;font-weight:620;padding-left:10px}
-.sales td.n{text-align:right;color:var(--text-muted);padding-left:10px;font-size:11px}
-.sales tr.sel td{color:var(--accent)}
 /* a median from 2 sales should not look as firm as one from 20 */
-.sales tr.thin td.p{font-weight:500;color:var(--text-secondary)}
-.nosale{color:var(--text-muted);font-size:11.5px;margin-top:9px;padding-top:9px;
-  border-top:1px solid var(--border)}
 .gridline{stroke:var(--grid);stroke-width:1;shape-rendering:crispEdges}
 .axis{stroke:var(--border);stroke-width:1;shape-rendering:crispEdges}
 .tick{fill:var(--text-muted);font-size:10.5px}
@@ -208,7 +186,10 @@ footer td{border:0;padding:3px 14px 3px 0;white-space:normal;vertical-align:top}
 .pbody h4{font-size:11px;font-weight:650;color:var(--text-muted);text-transform:uppercase;
   letter-spacing:.05em;margin:20px 0 8px}
 .pbody h4:first-child{margin-top:0}
-.ptab{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+/* Wide tables scroll inside their own box; bleeding to the panel edge makes it
+   obvious there is more to the right on a phone. */
+.ptabwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px}
+.ptab{width:100%;min-width:430px;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
 .ptab th{text-align:left;font-weight:620;color:var(--text-secondary);border-bottom:1px solid var(--border);
   padding:6px 8px;white-space:nowrap;position:sticky;top:0;background:var(--surface-0)}
 .ptab td{padding:5px 8px;border-bottom:1px solid var(--grid);white-space:nowrap}
@@ -821,7 +802,6 @@ function toGeoJSON(pts){
     properties:{a:p.addr, t:p.town, pa:p.pa || '—', u:uOf(p), f:p.floors,
                 top:p.top, mop:p.mop, po:p.postal || '', d:p.dec.o,
                 bl:p.blk, sf:p.streetFull || p.street, pj:p.project || '', st:p.street,
-                rs:JSON.stringify(p.res || null),
                 r:Math.sqrt(uOf(p) / umax)},
   }))};
 }
@@ -996,60 +976,10 @@ function pgUrl(q){
   return u;
 }
 
-let POPUP = null;
-function showBlockPopup(lngLat, p){
-  if (POPUP) POPUP.remove();
-  const blockQ = `${p.bl} ${p.sf}`;
-  // narrowest to broadest: one block often has no live listing, so offer the fallbacks
-  const links = [[`Listings in block ${p.bl}`, blockQ]];
-  if (p.pj) links.push([`Listings in ${p.pj}`, p.pj]);
-  links.push([`Listings on ${p.sf}`, p.sf]);
-  POPUP = new mapboxgl.Popup({closeButton:true, maxWidth:'272px', offset:11})
-    .setLngLat(lngLat)
-    .setHTML(`<div class="pop"><b>${blockQ}</b>
-      ${p.pj ? `<div class="proj">${p.pj}</div>` : ''}
-      <div class="d">${p.t} · ${p.pa}<br>${fmt(p.u)} units · ${p.f} storeys<br>
-      TOP ${p.top} · MOP est. ${p.mop}${p.po ? '<br>Singapore ' + p.po : ''}</div>
-      ${salesHtml(p)}
-      <div class="pglinks">${links.map(([lbl, q]) =>
-        `<a href="${pgUrl(q)}" target="_blank" rel="noopener noreferrer">${lbl} &#8599;</a>`).join('')}
-      </div>
-      <div class="txlink"><a class="plink" href="#b=${encodeURIComponent(p.bl + '|' + p.st)}"
-         onclick="event.stopPropagation()">View full transaction history &rarr;</a></div>
-      <div class="pgnote">PropertyGuru searches, opening in a new tab. A single block often has
-      no active listing — the project and street searches are the fallbacks.</div></div>`)
-    .addTo(MAP);
-}
-
-function salesHtml(p){
-  let res = null;
-  try { res = JSON.parse(p.rs || 'null'); } catch { res = null; }
-  // Distinguish "this block genuinely has no sales" from "the price data never loaded".
-  // Claiming the former when the latter is true is a silent, confident falsehood.
-  if (!HAS_RESALE)
-    return `<div class="nosale">Price data unavailable — reload the page to fetch it.</div>`;
-  if (!res || !Object.keys(res).length)
-    return `<div class="nosale">No resale transactions since 2017 — typically a newer block
-            still within its MOP, or rental-only.</div>`;
-  const order = TYPES.filter(t => res[t.k]);
-  const rows = order.map(t => {
-    const p = priceOf(res[t.k]);
-    const cls = [F.utype === t.k ? 'sel' : '', (!p.cur || p.n < 2) ? 'thin' : ''].filter(Boolean).join(' ');
-    const note = p.cur ? `${p.n} sold · ${monthLabel(p.last)}`
-                       : `last sold ${monthLabel(p.last)}`;
-    return `<tr${cls ? ` class="${cls}"` : ''}><td>${t.lbl}</td><td class="p">${sgd(p.v)}</td>
-      <td class="n">${note}</td></tr>`;
-  }).join('');
-  const stale = order.some(t => !priceOf(res[t.k]).cur);
-  return `<div class="sales"><h4>Resale &middot; median, last 12 months</h4><table>${rows}</table>`
-    + (stale ? `<div class="pgnote" style="margin-top:6px">Muted rows had no sale in the last
-        12 months — the figure is that block's most recent sale, not a current median.</div>` : '')
-    + `</div>`;
-}
-
 const tipHtml = p => `<b>${p.a}</b>${p.pj ? `<br><span style="color:var(--accent);font-weight:600">${p.pj}</span>` : ''}<br><span class="d">${p.t} · ${p.pa}<br>
   ${fmt(p.u)} units · ${p.f} storeys<br>TOP ${p.top} · MOP est. ${p.mop}
-  ${p.po ? '<br>Singapore ' + p.po : ''}</span>`;
+  ${p.po ? '<br>Singapore ' + p.po : ''}
+  <br><span style="color:var(--accent)">Click for full history</span></span>`;
 
 function wireMapHover(){
   MAP.on('mousemove', 'blocks-dots', e => {
@@ -1064,10 +994,14 @@ function wireMapHover(){
     showTip(e.originalEvent, `<b>${p.n}</b><br><span class="d">${lvl}${p.g ? ' · ' + p.g : ''}<br>${p.t}</span>`);
   });
   MAP.on('mouseleave', 'sch-dot', () => { MAP.getCanvas().style.cursor = ''; hideTip(); });
+  /* A Mapbox popup is anchored to its marker, so near an edge — which on a phone is
+     most of the map — the canvas clips it. The slide-in panel is not positional, has
+     room for the full history, and is deep-linkable. */
   MAP.on('click', 'blocks-dots', e => {
     if (!e.features || !e.features[0]) return;
     hideTip();
-    showBlockPopup(e.features[0].geometry.coordinates.slice(), e.features[0].properties);
+    const p = e.features[0].properties;
+    location.hash = 'b=' + encodeURIComponent(p.bl + '|' + p.st);
   });
 }
 
@@ -1129,6 +1063,10 @@ function drawMapSvg(pts, host){
        po:p.postal, pj:p.project, bl:p.blk, sf:p.streetFull})));
     c.addEventListener('mousemove', e => showTip(e, tip.innerHTML));
     c.addEventListener('mouseleave', hideTip);
+    c.addEventListener('click', () => {
+      location.hash = 'b=' + encodeURIComponent(p.blk + '|' + p.street);
+    });
+    c.style.cursor = 'pointer';
   });
   host.appendChild(s);
 }
@@ -1500,16 +1438,16 @@ function panelMeta(b, rec){
   const left = rec && rec.lc ? 99 - (DB.meta.this_year - rec.lc)
                              : 99 - (DB.meta.this_year - b.top);
   const exact = rec && rec.lc;
-  return `${b.town} · ${b.pa || '—'}<br>${fmt(b.units)} units · ${b.floors} storeys · TOP ${b.top}
-    · ${exact ? '' : '~'}${left} years lease remaining${exact ? ` (from ${rec.lc})` : ''}` +
-    (b.postal ? '<br>Singapore ' + b.postal : '');
+  return `${b.town} · ${b.pa || '—'}<br>${fmt(b.units)} units · ${b.floors} storeys
+    · TOP ${b.top} · MOP est. ${b.mop}<br>${exact ? '' : '~'}${left} years lease remaining${exact ? ` (from ${rec.lc})` : ''}` +
+    (b.postal ? ' · Singapore ' + b.postal : '');
 }
 
 function renderPanel(b, rec){
   const host = $('#pbody');
   if (!rec || !rec.t || !rec.t.length){
     host.innerHTML = `<p class="pnote">No resale transactions recorded since 2017 for this block —
-      typically a newer block still within its MOP, or rental-only.</p>`;
+      typically a newer block still within its MOP, or rental-only.</p>` + listingLinks(b);
     return;
   }
   let rows = rec.t.map(([m, code, storey, sqm, p100]) => ({
@@ -1555,29 +1493,42 @@ function renderPanel(b, rec){
 
   host.innerHTML =
     `<h4>Summary by flat type and size</h4>
-     <table class="ptab"><thead><tr><th>Type</th><th class="n">sqm</th><th class="n">Sales</th>
+     <div class="ptabwrap"><table class="ptab"><thead><tr><th>Type</th><th class="n">sqm</th><th class="n">Sales</th>
        <th class="n">Median all</th><th class="n">Median LTM</th><th class="n">n LTM</th><th>Last sale</th></tr></thead>
-       <tbody>${gRows}</tbody></table>
+       <tbody>${gRows}</tbody></table></div>
      <p class="pnote">Split by floor area as well as flat type — one block can hold two
        layouts under the same name, and a blended median describes neither. Muted rows have
        fewer than two sales in the last twelve months.</p>
      <h4>All transactions <span class="pill">${shown.length} of ${rows.length}</span></h4>
      ${filt}
      ${priceScatter(shown)}
-     <table class="ptab"><thead><tr><th>Month</th><th>Type</th><th class="n">Storey</th>
+     <div class="ptabwrap"><table class="ptab"><thead><tr><th>Month</th><th>Type</th><th class="n">Storey</th>
        <th class="n">sqm</th><th class="n">Price</th><th class="n">psf</th><th class="n">Lease</th></tr></thead>
-       <tbody>${body}</tbody></table>
+       <tbody>${body}</tbody></table></div>
      <p class="pnote">HDB publishes a three-storey band and no unit number, so a specific flat
        cannot be tracked across sales — two rows in the same band and size may or may not be the
        same home. Prices are as registered with HDB.</p>
-     <p class="txlink">
-       <a class="plink" href="${pgUrl(`${b.blk} ${b.streetFull || b.street}`)}" target="_blank" rel="noopener noreferrer">Live listings in this block &#8599;</a>
-       &nbsp;·&nbsp; <a class="plink" href="#" id="ptxcsv">Download these transactions (CSV)</a></p>`;
+     ${listingLinks(b)}
+     <p class="txlink"><a class="plink" href="#" id="ptxcsv">Download these transactions (CSV)</a></p>`;
 
   host.querySelectorAll('.sbtn').forEach(btn => btn.onclick = () => {
     PANEL_FILTER = btn.dataset.t; renderPanel(b, rec);
   });
   $('#ptxcsv').onclick = e => { e.preventDefault(); txCsv(b, shown); };
+}
+
+/* Narrowest to broadest: one block often has no live listing, so the project and
+   street searches are the fallbacks. Carried over from the popup this replaced. */
+function listingLinks(b){
+  const street = b.streetFull || b.street;
+  const out = [[`Listings in block ${b.blk}`, `${b.blk} ${street}`]];
+  if (b.project) out.push([`Listings in ${b.project}`, b.project]);
+  out.push([`Listings on ${street}`, street]);
+  return `<h4>Live listings</h4><div class="pglinks" style="border:0;padding:0;margin:0">`
+    + out.map(([lbl, q]) => `<a href="${pgUrl(q)}" target="_blank" rel="noopener noreferrer">${lbl} &#8599;</a>`).join('')
+    + `</div><p class="pnote">PropertyGuru searches, opening in a new tab${F.utype
+        ? `, filtered to ${(TYPES.find(t => t.k === F.utype) || {}).lbl}` : ''}. A single block
+        often has no active listing — the project and street searches are the fallbacks.</p>`;
 }
 
 /* psf over time, coloured by storey band — storey is the biggest in-block price driver */

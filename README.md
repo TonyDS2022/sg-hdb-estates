@@ -186,10 +186,16 @@ one-year bucket is often a single transaction, which is a price, not a median.
 
 ### Transaction panel and how the data persists
 
-Clicking a block opens a panel with its full transaction history — every sale, split by
+Clicking a block opens a slide-in panel with its full transaction history — every sale, split by
 flat type **and floor area**, a psf-over-time scatter coloured by storey band, and a CSV
 export. The panel is deep-linkable (`#b=18|CANTONMENT+CL`), so a block is shareable and the
 back button closes it.
+
+A Mapbox popup was tried first and abandoned: it anchors to its marker, so near an edge —
+which on a phone is most of the map — the canvas clips it, and the content had outgrown the
+space anyway. The panel is not positional, is full-width on a phone, and has room for the
+whole history. Wide tables scroll inside their own container so neither the panel nor the
+page ever scrolls sideways.
 
 The 240k-row history is never shipped up front. `build_resale.py` writes `site/tx/<street>.json`
 — **580 files, ~5 MB total, median 6 KB** — fetched on demand and cached. Sharding by street
