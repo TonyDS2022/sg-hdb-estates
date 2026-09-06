@@ -13,6 +13,7 @@
   --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a; --series-4:#eda100;
   --series-5:#e87ba4; --series-6:#008300; --series-7:#4a3aa7; --series-8:#e34948;
   --ord-1:#86b6ef; --ord-2:#5598e7; --ord-3:#2a78d6; --ord-4:#1c5cab; --ord-5:#104281;
+  --sch-p:#4a3aa7; --sch-s:#e87ba4; --sch-j:#eda100;
   --accent:#2a78d6; --ctrl-ink:none; --map-ring:#fcfcfb;
 }
 @media (prefers-color-scheme: dark){
@@ -24,6 +25,7 @@
     --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
     --series-5:#d55181; --series-6:#008300; --series-7:#9085e9; --series-8:#e66767;
     --ord-1:#256abf; --ord-2:#3987e5; --ord-3:#6da7ec; --ord-4:#9ec5f4; --ord-5:#cde2fb;
+    --sch-p:#9085e9; --sch-s:#d55181; --sch-j:#c98500;
     --accent:#3987e5; --ctrl-ink:invert(1) hue-rotate(180deg); --map-ring:#1a1a19;
   }
 }
@@ -35,6 +37,7 @@
   --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
   --series-5:#d55181; --series-6:#008300; --series-7:#9085e9; --series-8:#e66767;
   --ord-1:#256abf; --ord-2:#3987e5; --ord-3:#6da7ec; --ord-4:#9ec5f4; --ord-5:#cde2fb;
+  --sch-p:#9085e9; --sch-s:#d55181; --sch-j:#c98500;
   --accent:#3987e5; --ctrl-ink:invert(1) hue-rotate(180deg); --map-ring:#1a1a19;
 }
 *{box-sizing:border-box}
@@ -467,6 +470,7 @@ function boot(){
         <div style="display:flex;gap:8px">
           <label class="chk"><input type="checkbox" id="frail" checked> MRT / LRT</label>
           <label class="chk"><input type="checkbox" id="fstn" checked> Stations</label>
+          <label class="chk"><input type="checkbox" id="fsch"> Schools</label>
           <label class="chk"><input type="checkbox" id="fnames" checked> Estate names</label>
         </div></div>
       <button class="btn" id="freset">Reset</button>
@@ -564,6 +568,12 @@ function boot(){
     mapLegend(filtered().filter(b => b.lat != null));
   };
   $('#fstn').onchange = e => { SHOW_STN = e.target.checked; setStationVis(); };
+  $('#fsch').onchange = async e => {
+    SHOW_SCH = e.target.checked;
+    if (SHOW_SCH) await ensureSchools();
+    setSchoolVis();
+    mapLegend(filtered().filter(b => b.lat != null));
+  };
   $('#fnames').onchange = e => {
     SHOW_NAMES = e.target.checked;
     if (MAP && MAP.getLayer('estate-labels'))
@@ -698,6 +708,7 @@ const themeNow = () => document.documentElement.getAttribute('data-theme')
 
 let MAP = null, MAP_MODE = null, MAP_PTS = [], LAST_FIT = null;
 let RAIL = null, STN = null, SHOW_RAIL = true, SHOW_NAMES = true, SHOW_STN = true;
+let SCH = null, SHOW_SCH = false;
 let HAS_RESALE = false;
 
 /* MRT/LRT geometry from OpenStreetMap, drawn in the operators' own line colours.
@@ -719,6 +730,67 @@ async function loadRail(){
   if (RAIL) return RAIL;
   [RAIL, STN] = await Promise.all([loadJSON('rail.geojson'), loadJSON('stations.geojson')]);
   return RAIL;
+}
+
+/* MOE schools. Levels are drawn as SQUARES, not circles: the map already carries
+   circular block dots and ringed station marks, so shape — not hue — is what keeps
+   the three layers apart. Hue then distinguishes school level, which matters because
+   the 1 km / 2 km home-to-school priority in P1 registration applies to primary
+   schools only. */
+const SCH_LVL = [['P','Primary','--sch-p'], ['S','Secondary','--sch-s'], ['J','Junior College','--sch-j']];
+
+function squareIcon(fill, ring){
+  const S = 16, c = document.createElement('canvas');
+  c.width = c.height = S;
+  const x = c.getContext('2d');
+  x.fillStyle = ring; x.fillRect(0, 0, S, S);
+  x.fillStyle = fill; x.fillRect(2.5, 2.5, S - 5, S - 5);
+  return x.getImageData(0, 0, S, S);
+}
+
+/* Fetched only when the toggle is first switched on — the layer is off by default,
+   so every visitor should not pay 75 KB for it. */
+async function ensureSchools(){
+  if (!SCH) SCH = await loadJSON('schools.geojson');
+  if (MAP) addSchoolLayers();
+}
+
+function addSchoolLayers(){
+  if (!SCH || !SCH.features.length || MAP.getSource('schools')) return;
+  const cs = getComputedStyle(document.documentElement);
+  const ring = (MAP_MODE === 'dark' ? '#1a1a19' : '#fcfcfb');
+  SCH_LVL.forEach(([k,, v]) => {
+    const id = 'sch-' + k;
+    if (MAP.hasImage(id)) MAP.removeImage(id);
+    MAP.addImage(id, squareIcon(cs.getPropertyValue(v).trim(), ring), {pixelRatio: 2});
+  });
+  MAP.addSource('schools', {type:'geojson', data: SCH});
+  const vis = SHOW_SCH ? 'visible' : 'none';
+  MAP.addLayer({id:'sch-dot', type:'symbol', source:'schools',
+    layout:{
+      'icon-image':['match', ['get','l'], 'P','sch-P', 'S','sch-S', 'J','sch-J', 'sch-P'],
+      'icon-size':['interpolate', ['linear'], ['zoom'], 10, 0.42, 13, 0.62, 16, 0.9],
+      'icon-allow-overlap':true, 'icon-ignore-placement':true, visibility: vis,
+    }});
+  MAP.addLayer({id:'sch-label', type:'symbol', source:'schools', minzoom:13.5,
+    layout:{
+      'text-field':['get','n'],
+      'text-font':['DIN Pro Regular', 'Arial Unicode MS Regular'],
+      'text-size':['interpolate', ['linear'], ['zoom'], 13.5, 9.5, 17, 12],
+      'text-offset':[0, 1.0], 'text-anchor':'top', 'text-padding':3,
+      'text-max-width':10, 'text-allow-overlap':false, 'text-optional':true, visibility: vis,
+    },
+    paint:{
+      'text-color': MAP_MODE === 'dark' ? '#c3c2b7' : '#52514e',
+      'text-halo-color': ring, 'text-halo-width':1.5,
+    }});
+}
+
+function setSchoolVis(){
+  const vis = SHOW_SCH ? 'visible' : 'none';
+  ['sch-dot','sch-label'].forEach(id => {
+    if (MAP && MAP.getLayer(id)) MAP.setLayoutProperty(id, 'visibility', vis);
+  });
 }
 
 function addRailLayers(){
@@ -864,6 +936,7 @@ function addMapLayers(){
   if (!MAP.getLayer('blocks-dots'))
     MAP.addLayer({id:'blocks-dots', type:'circle', source:'blocks', paint: circlePaint(MAP_MODE)});
   addStationLayers();       // above the block dots - proximity is the point of the overlay
+  if (SCH) addSchoolLayers();   // re-added after a style swap, if already fetched
   addEstateLabels();        // last, so names sit above the dots
   setBasemapLabels(!SHOW_NAMES);
 }
@@ -981,6 +1054,13 @@ function wireMapHover(){
     if (e.features && e.features[0]) showTip(e.originalEvent, tipHtml(e.features[0].properties));
   });
   MAP.on('mouseleave', 'blocks-dots', () => { MAP.getCanvas().style.cursor = ''; hideTip(); });
+  MAP.on('mousemove', 'sch-dot', e => {
+    MAP.getCanvas().style.cursor = 'pointer';
+    const p = e.features[0].properties;
+    const lvl = (SCH_LVL.find(x => x[0] === p.l) || [,'School'])[1];
+    showTip(e.originalEvent, `<b>${p.n}</b><br><span class="d">${lvl}${p.g ? ' · ' + p.g : ''}<br>${p.t}</span>`);
+  });
+  MAP.on('mouseleave', 'sch-dot', () => { MAP.getCanvas().style.cursor = ''; hideTip(); });
   MAP.on('click', 'blocks-dots', e => {
     if (!e.features || !e.features[0]) return;
     hideTip();
@@ -1071,6 +1151,23 @@ function setStationVis(){
   });
 }
 
+function schoolLegend(){
+  if (!SHOW_SCH || !SCH || !SCH.features.length) return '';
+  const c = {};
+  SCH.features.forEach(f => c[f.properties.l] = (c[f.properties.l] || 0) + 1);
+  return `<div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">MOE schools</div>`
+    + SCH_LVL.map(([k, lbl, v]) => `<div class="railkey">
+        <span style="width:9px;height:9px;background:var(${v});flex:none;display:inline-block;
+              border:1.5px solid var(--surface-1)"></span>
+        <span style="color:var(--text-secondary)">${lbl}</span>
+        <span style="margin-left:auto;color:var(--text-muted);font-variant-numeric:tabular-nums">${c[k] || 0}</span>
+      </div>`).join('')
+    + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">Squares, to keep them
+       apart from blocks and stations. The 1 km / 2 km registration priority applies to primary schools only.
+       Names appear as you zoom in.</div></div>`;
+}
+
 function railLegend(){
   if (!SHOW_RAIL || !RAIL || !RAIL.features.length) return '';
   // the three LRT networks share one colour, so they get one combined key
@@ -1094,6 +1191,7 @@ function railLegend(){
            <div class="railkey"><span style="width:7px;height:7px;border-radius:50%;
              border:1.6px solid var(--series-1);background:var(--surface-1);flex:none;display:inline-block"></span>
            <span style="color:var(--text-secondary)">Station</span></div>` : '')
+    + schoolLegend()
     + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">Dashed lines and faint
        stations are under construction. Station names appear as you zoom in.
        Geometry © OpenStreetMap contributors.</div></div>`;

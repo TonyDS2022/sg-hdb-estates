@@ -57,6 +57,7 @@ python3 serve.py -p 9000    # pick a different port
 | `site/config.js` | Generated: Mapbox token + style URLs (git-ignored) |
 | `site/rail.geojson` | MRT/LRT line geometry from OpenStreetMap |
 | `site/stations.geojson` | 212 MRT/LRT stations, with codes, interchange and build status |
+| `site/schools.geojson` | 337 MOE schools, geocoded by postal code |
 | `site/data.json` | Dictionary-encoded payload the report loads |
 
 ## Deploying (Cloudflare Workers, static assets)
@@ -101,6 +102,7 @@ Hosting is free; Mapbox is the cost that scales, at 50k map loads/month on the f
 | OneMap Search API | Singapore Land Authority | latitude / longitude / postal code per block |
 | Master Plan 2019 Planning Area Boundary (`d_4765db0e87b9c86336792efe8a1f7a66`) | URA via data.gov.sg | planning area + region polygons |
 | OpenStreetMap (Overpass API) | OSM contributors, ODbL | MRT/LRT line and station geometry |
+| General information of schools (`d_688b934f82c1059ed0a6993d2a829089`) | MOE via data.gov.sg | 337 schools: name, level, type, postal code |
 | Resale Flat Prices (`d_8b84c4ee58e3cfc0ece0d773c8ca6abc`) | HDB via data.gov.sg | 239,583 resale transactions, Jan 2017 onwards |
 
 ## Pipeline
@@ -111,7 +113,8 @@ geocode.py     block + street -> OneMap -> data/geocode_cache.jsonl   (resumable
 build_db.py    CSV + geocodes + point-in-polygon -> sqlite / csv / json
 build_site.py  -> site/data.json + site/config.js
 fetch_rail.py  Overpass -> site/rail.geojson, site/stations.geojson  (cached)
-build_resale.py resale.csv -> data/resale_agg.json
+build_resale.py resale.csv -> data/resale_agg.json, site/tx/
+fetch_schools.py schools.csv + OneMap -> site/schools.geojson
 validate.py    QA the assembled database (exits non-zero on failure)
 serve.py       -> http://127.0.0.1:<port>/
 ```
@@ -225,6 +228,23 @@ Asserts the **main page** renders: tiles, charts, source rows, table rows, map c
 error card and no console errors — on both a plain load and a deep link. This exists because
 a crash in `boot()` once shipped: the panel tests passed, since the panel is a sibling of
 `#app` and survived the crash that blanked the page behind it. Exits non-zero on failure.
+
+### Schools overlay
+
+337 MOE schools, off by default and fetched only when the toggle is switched on — no visitor
+pays 75 KB for a layer they never open. Geocoded from postal codes via OneMap; all 337
+resolved, none outside Singapore.
+
+Drawn as **squares**, not circles. The map already carries circular block dots and ringed
+station marks, so shape rather than hue is what keeps the three layers apart — every usable
+hue is already spoken for by an MRT line. Hue then separates the three levels, which matters
+because the **1 km / 2 km home-to-school priority in P1 registration applies to primary
+schools only**. Both light and dark marker sets validate all-pairs for colour-vision
+deficiency.
+
+One casing trap: the source is entirely uppercase, and a blind `.title()` turns real acronyms
+into words — "CHIJ" became "Chij" across 11 schools. Only CHIJ and NUS are genuine acronyms
+among the 337 names; the rest are ordinary words that title-case correctly.
 
 ### Rail overlay
 
