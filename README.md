@@ -252,6 +252,22 @@ One casing trap: the source is entirely uppercase, and a blind `.title()` turns 
 into words — "CHIJ" became "Chij" across 11 schools. Only CHIJ and NUS are genuine acronyms
 among the 337 names; the rest are ordinary words that title-case correctly.
 
+### Languages
+
+English and Simplified Chinese. The choice lives in the **query string** (`?lang=zh`) so it
+survives the hash the block panel uses — `?lang=zh#b=18|CANTONMENT+CL` is one shareable link
+to a specific block in Chinese. It also persists to `localStorage`, and falls back to the
+browser's language on a first visit.
+
+Translated: all interface text, plus the data values that have official Chinese names — the
+27 HDB towns, 5 regions, the 32 planning areas that contain HDB blocks, flat types and era
+bands. Numbers reformat to the `zh-SG` locale.
+
+**Not translated, deliberately:** street names, project names and school names. They have no
+official Chinese form, and Singapore addresses are written in English even in Chinese-language
+media. The licence attribution also stays in English, since it is a legal notice referencing
+English licence terms.
+
 ### Rail overlay
 
 `fetch_rail.py` pulls MRT/LRT route relations from OpenStreetMap and writes
