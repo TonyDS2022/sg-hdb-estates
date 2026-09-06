@@ -182,6 +182,43 @@ footer td{border:0;padding:3px 14px 3px 0;white-space:normal;vertical-align:top}
 .warn{background:var(--surface-2);border-left:3px solid var(--series-4);padding:10px 13px;
   border-radius:0 7px 7px 0;font-size:12.5px;color:var(--text-secondary);margin:14px 0 0}
 .loading{padding:60px;text-align:center;color:var(--text-muted)}
+/* ---- transaction panel ---- */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.34);opacity:0;pointer-events:none;
+  transition:opacity .18s;z-index:60}
+#scrim.on{opacity:1;pointer-events:auto}
+#panel{position:fixed;top:0;right:0;bottom:0;width:min(760px,100vw);background:var(--surface-0);
+  border-left:1px solid var(--border);z-index:61;transform:translateX(101%);
+  transition:transform .22s ease;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#panel.on{transform:none}
+.ph{position:sticky;top:0;background:var(--surface-0);border-bottom:1px solid var(--border);
+  padding:16px 20px 13px;z-index:2}
+.ph h3{margin:0;font-size:17px;font-weight:650;letter-spacing:-.015em}
+.ph .proj{color:var(--accent);font-weight:600;font-size:13px;margin-top:2px}
+.ph .meta{color:var(--text-secondary);font-size:12.5px;margin-top:5px;line-height:1.5}
+.pclose{position:absolute;top:12px;right:14px;background:var(--surface-1);border:1px solid var(--border);
+  color:var(--text-secondary);border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:16px;line-height:1}
+.pclose:hover{color:var(--text-primary)}
+.pbody{padding:16px 20px 40px}
+.pbody h4{font-size:11px;font-weight:650;color:var(--text-muted);text-transform:uppercase;
+  letter-spacing:.05em;margin:20px 0 8px}
+.pbody h4:first-child{margin-top:0}
+.ptab{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+.ptab th{text-align:left;font-weight:620;color:var(--text-secondary);border-bottom:1px solid var(--border);
+  padding:6px 8px;white-space:nowrap;position:sticky;top:0;background:var(--surface-0)}
+.ptab td{padding:5px 8px;border-bottom:1px solid var(--grid);white-space:nowrap}
+.ptab td.n,.ptab th.n{text-align:right}
+.ptab tbody tr:hover{background:var(--surface-1)}
+.ptab tr.thin td{color:var(--text-muted)}
+.pnote{font-size:11.5px;color:var(--text-muted);line-height:1.5;margin-top:8px}
+.pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;
+  background:var(--surface-2);color:var(--text-secondary);margin-left:6px}
+.plink{color:var(--accent);text-decoration:none;font-weight:560;font-size:12.5px}
+.plink:hover{text-decoration:underline}
+.sbtn{background:var(--surface-1);border:1px solid var(--border);color:var(--text-secondary);
+  border-radius:7px;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer;margin-right:6px}
+.sbtn:hover{color:var(--text-primary)}
+.sbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.txlink{display:block;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
 </style>
 </head>
 <body>
@@ -197,6 +234,12 @@ footer td{border:0;padding:3px 14px 3px 0;white-space:normal;vertical-align:top}
 <div id="app" class="loading">Loading data…</div>
 </div>
 <div id="tip"></div>
+<div id="scrim"></div>
+<aside id="panel" role="dialog" aria-modal="true" aria-label="Transaction history">
+  <div class="ph"><button class="pclose" id="pclose" aria-label="Close">&times;</button>
+    <h3 id="ptitle"></h3><div class="proj" id="pproj"></div><div class="meta" id="pmeta"></div></div>
+  <div class="pbody" id="pbody"></div>
+</aside>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -526,7 +569,11 @@ function boot(){
        </a>`;
   }
 
-  $('#src').innerHTML = m.sources.map(s =>
+  $('#pclose').onclick = () => closePanel();
+  $('#scrim').onclick = () => closePanel();
+  if (location.hash) hashOpen();
+
+  $('#src').innerHTML = m.sources.map(s =
     `<tr><td style="color:var(--text-secondary);font-weight:600">${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td></tr>`).join('');
 
   render();
@@ -685,7 +732,7 @@ function toGeoJSON(pts){
     geometry:{type:'Point', coordinates:[p.lon, p.lat]},
     properties:{a:p.addr, t:p.town, pa:p.pa || '—', u:uOf(p), f:p.floors,
                 top:p.top, mop:p.mop, po:p.postal || '', d:p.dec.o,
-                bl:p.blk, sf:p.streetFull || p.street, pj:p.project || '',
+                bl:p.blk, sf:p.streetFull || p.street, pj:p.project || '', st:p.street,
                 rs:JSON.stringify(p.res || null),
                 r:Math.sqrt(uOf(p) / umax)},
   }))};
@@ -878,6 +925,8 @@ function showBlockPopup(lngLat, p){
       <div class="pglinks">${links.map(([lbl, q]) =>
         `<a href="${pgUrl(q)}" target="_blank" rel="noopener noreferrer">${lbl} &#8599;</a>`).join('')}
       </div>
+      <div class="txlink"><a class="plink" href="#b=${encodeURIComponent(p.bl + '|' + p.st)}"
+         onclick="event.stopPropagation()">View full transaction history &rarr;</a></div>
       <div class="pgnote">PropertyGuru searches, opening in a new tab. A single block often has
       no active listing — the project and street searches are the fallbacks.</div></div>`)
     .addTo(MAP);
@@ -1280,6 +1329,196 @@ function estateTable(rows){
   });
 }
 
+/* ---------- transaction panel ---------- */
+/* The 240k-row history is never shipped up front. Streets are fetched on demand and
+   cached, so opening one block warms every neighbouring block on the same street. */
+const TXC = {};
+const TXLBL = {'1':'1-room','2':'2-room','3':'3-room','4':'4-room','5':'5-room',
+               'E':'Executive','M':'Multi-gen'};
+const slugify = v => v.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+
+async function txFor(street){
+  const sl = slugify(street);
+  if (!(sl in TXC)) {
+    try {
+      const r = await fetch(`${BASE}tx/${sl}.json`);
+      TXC[sl] = r.ok ? await r.json() : null;
+    } catch { TXC[sl] = null; }
+  }
+  return TXC[sl];
+}
+
+function mLabel(i){
+  const t = 2017*12 + i;
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t%12] + ' ' + Math.floor(t/12);
+}
+const psfOf = (price100, sqm) => (price100*100)/(sqm*10.763910417);
+
+let PANEL_BLOCK = null, PANEL_FILTER = '';
+
+function closePanel(pushHash = true){
+  $('#panel').classList.remove('on'); $('#scrim').classList.remove('on');
+  PANEL_BLOCK = null;
+  if (pushHash && location.hash) history.pushState('', '', location.pathname + location.search);
+}
+
+async function openPanel(blk, street, filterType){
+  const b = DB.blocks.find(x => x.blk === blk && x.street === street);
+  if (!b) return;
+  PANEL_BLOCK = b; PANEL_FILTER = filterType || '';
+  $('#panel').classList.add('on'); $('#scrim').classList.add('on');
+  $('#ptitle').textContent = `${b.blk} ${b.streetFull || b.street}`;
+  $('#pproj').textContent = b.project || '';
+  $('#pproj').style.display = b.project ? '' : 'none';
+  $('#pmeta').innerHTML = panelMeta(b, null);
+  $('#pbody').innerHTML = '<p class="pnote">Loading transactions…</p>';
+  const data = await txFor(b.street);
+  if (PANEL_BLOCK !== b) return;                    // a newer open superseded this one
+  const rec = (data || {})[b.blk.toUpperCase()];
+  $('#pmeta').innerHTML = panelMeta(b, rec);
+  renderPanel(b, rec);
+}
+
+/* Lease runs from its own commencement date, which is not the TOP year — block 18
+   Cantonment Close completed in 2000 but its lease commenced 2002. Use the real date
+   when the transaction file supplies it, and fall back to TOP only when it does not. */
+function panelMeta(b, rec){
+  const left = rec && rec.lc ? 99 - (DB.meta.this_year - rec.lc)
+                             : 99 - (DB.meta.this_year - b.top);
+  const exact = rec && rec.lc;
+  return `${b.town} · ${b.pa || '—'}<br>${fmt(b.units)} units · ${b.floors} storeys · TOP ${b.top}
+    · ${exact ? '' : '~'}${left} years lease remaining${exact ? ` (from ${rec.lc})` : ''}` +
+    (b.postal ? '<br>Singapore ' + b.postal : '');
+}
+
+function renderPanel(b, rec){
+  const host = $('#pbody');
+  if (!rec || !rec.t || !rec.t.length){
+    host.innerHTML = `<p class="pnote">No resale transactions recorded since 2017 for this block —
+      typically a newer block still within its MOP, or rental-only.</p>`;
+    return;
+  }
+  let rows = rec.t.map(([m, code, storey, sqm, p100]) => ({
+    m, code, storey, sqm, price:p100*100, psf:psfOf(p100, sqm),
+    lease: 99 - ((2017 + Math.floor((2017*12+m)/12) - 2017) - rec.lc),
+  }));
+  rows.forEach(r => { r.lease = 99 - (Math.floor((2017*12 + r.m)/12) - rec.lc); });
+  const types = [...new Set(rows.map(r => r.code))].sort();
+  const shown = PANEL_FILTER ? rows.filter(r => r.code === PANEL_FILTER) : rows;
+
+  // Group by type AND floor area: "4 ROOM" can mean two different layouts in one block,
+  // and blending them produces a median that describes no actual flat.
+  const groups = {};
+  rows.forEach(r => { (groups[r.code + '|' + r.sqm] ||= []).push(r); });
+  // Window must be the dataset's last twelve months, not the block's own last twelve
+  // months of activity — otherwise a block last sold in 2020 reports a "LTM" median
+  // covering 2019-2020, which is not what the column claims.
+  const lm = (DB.resaleMeta || {}).latest_month || '';
+  const nowM = lm ? (+lm.slice(0,4) - 2017) * 12 + (+lm.slice(5,7)) - 1 : Math.max(...rows.map(r => r.m));
+  const cut = nowM - 12;
+  const gRows = Object.entries(groups).sort((a,b2) => b2[1].length - a[1].length).map(([k, v]) => {
+    const [code, sqm] = k.split('|');
+    const ltm = v.filter(r => r.m > cut).map(r => r.price).sort((x,y)=>x-y);
+    const all = v.map(r => r.price).sort((x,y)=>x-y);
+    const med = a => a.length ? (a.length%2 ? a[(a.length-1)/2] : (a[a.length/2-1]+a[a.length/2])/2) : null;
+    const last = Math.max(...v.map(r => r.m));
+    return `<tr class="${ltm.length<2?'thin':''}"><td>${TXLBL[code]||code}</td><td class="n">${sqm}</td>
+      <td class="n">${v.length}</td><td class="n">${sgd(Math.round(med(all)/1000))}</td>
+      <td class="n">${ltm.length ? sgd(Math.round(med(ltm)/1000)) : '—'}</td>
+      <td class="n">${ltm.length || '—'}</td><td>${mLabel(last)}</td></tr>`;
+  }).join('');
+
+  const filt = `<div style="margin:2px 0 10px">
+    <button class="sbtn ${PANEL_FILTER?'':'on'}" data-t="">All types</button>` +
+    types.map(t => `<button class="sbtn ${PANEL_FILTER===t?'on':''}" data-t="${t}">${TXLBL[t]||t}</button>`).join('') +
+    `</div>`;
+
+  const body = [...shown].sort((a,b2) => b2.m - a.m).map(r =>
+    `<tr><td>${mLabel(r.m)}</td><td>${TXLBL[r.code]||r.code}</td>
+     <td class="n">${r.storey}–${r.storey+2}</td><td class="n">${r.sqm}</td>
+     <td class="n">${fmt(r.price)}</td><td class="n">${Math.round(r.psf)}</td>
+     <td class="n">${r.lease}y</td></tr>`).join('');
+
+  host.innerHTML =
+    `<h4>Summary by flat type and size</h4>
+     <table class="ptab"><thead><tr><th>Type</th><th class="n">sqm</th><th class="n">Sales</th>
+       <th class="n">Median all</th><th class="n">Median LTM</th><th class="n">n LTM</th><th>Last sale</th></tr></thead>
+       <tbody>${gRows}</tbody></table>
+     <p class="pnote">Split by floor area as well as flat type — one block can hold two
+       layouts under the same name, and a blended median describes neither. Muted rows have
+       fewer than two sales in the last twelve months.</p>
+     <h4>All transactions <span class="pill">${shown.length} of ${rows.length}</span></h4>
+     ${filt}
+     ${priceScatter(shown)}
+     <table class="ptab"><thead><tr><th>Month</th><th>Type</th><th class="n">Storey</th>
+       <th class="n">sqm</th><th class="n">Price</th><th class="n">psf</th><th class="n">Lease</th></tr></thead>
+       <tbody>${body}</tbody></table>
+     <p class="pnote">HDB publishes a three-storey band and no unit number, so a specific flat
+       cannot be tracked across sales — two rows in the same band and size may or may not be the
+       same home. Prices are as registered with HDB.</p>
+     <p class="txlink">
+       <a class="plink" href="${pgUrl(`${b.blk} ${b.streetFull || b.street}`)}" target="_blank" rel="noopener noreferrer">Live listings in this block &#8599;</a>
+       &nbsp;·&nbsp; <a class="plink" href="#" id="ptxcsv">Download these transactions (CSV)</a></p>`;
+
+  host.querySelectorAll('.sbtn').forEach(btn => btn.onclick = () => {
+    PANEL_FILTER = btn.dataset.t; renderPanel(b, rec);
+  });
+  $('#ptxcsv').onclick = e => { e.preventDefault(); txCsv(b, shown); };
+}
+
+/* psf over time, coloured by storey band — storey is the biggest in-block price driver */
+function priceScatter(rows){
+  if (rows.length < 3) return '';
+  const W = 700, H = 190, M = {t:14, r:10, b:26, l:52};
+  const ms = rows.map(r => r.m), ps = rows.map(r => r.psf);
+  const m0 = Math.min(...ms), m1 = Math.max(...ms) || 1;
+  const pmax = niceMax(Math.max(...ps)), iw = W-M.l-M.r, ph = H-M.t-M.b;
+  const band = st => st < 10 ? 0 : st < 19 ? 1 : st < 28 ? 2 : 3;
+  const COL = ['var(--ord-1)','var(--ord-2)','var(--ord-4)','var(--ord-5)'];
+  const LBL = ['1–9','10–18','19–27','28+'];
+  let g = '';
+  for (let i = 0; i <= 4; i++){
+    const y = M.t + ph - ph*i/4;
+    g += `<line x1="${M.l}" x2="${W-M.r}" y1="${y}" y2="${y}" class="gridline"/>
+          <text x="${M.l-8}" y="${y+3.5}" class="tick" text-anchor="end">${Math.round(pmax*i/4)}</text>`;
+  }
+  const pts = rows.map(r => {
+    const x = M.l + (m1===m0 ? iw/2 : (r.m-m0)/(m1-m0)*iw);
+    const y = M.t + ph - r.psf/pmax*ph;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6" fill="${COL[band(r.storey)]}"
+             fill-opacity=".85" stroke="var(--surface-0)" stroke-width="1"><title>${mLabel(r.m)} · storey ${r.storey}–${r.storey+2} · ${Math.round(r.psf)} psf · ${fmt(r.price)}</title></circle>`;
+  }).join('');
+  const yrs = [];
+  for (let m = m0; m <= m1; m++) if ((2017*12+m) % 12 === 0) yrs.push(m);
+  const xl = yrs.map(m => `<text x="${(M.l + (m1===m0?iw/2:(m-m0)/(m1-m0)*iw)).toFixed(1)}" y="${H-M.b+15}" class="tick" text-anchor="middle">${Math.floor((2017*12+m)/12)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="margin:4px 0 10px">
+     <text x="${M.l}" y="10" class="axlabel">S$ per sqft</text>${g}
+     <line x1="${M.l}" x2="${W-M.r}" y1="${H-M.b}" y2="${H-M.b}" class="axis"/>${xl}${pts}</svg>
+   <div class="legend" style="margin:0 0 4px">` +
+   LBL.map((l,i) => `<span class="it"><span class="sw" style="background:${COL[i]}"></span>storey ${l}</span>`).join('') + `</div>`;
+}
+
+function txCsv(b, rows){
+  const head = ['block','street','month','flat_type','storey_from','storey_to','floor_area_sqm','resale_price','psf','lease_remaining_years'];
+  const lines = rows.map(r => [b.blk, b.streetFull || b.street, mLabel(r.m), TXLBL[r.code]||r.code,
+    r.storey, r.storey+2, r.sqm, r.price, Math.round(r.psf), r.lease].join(','));
+  const blob = new Blob([head.join(',') + '\n' + lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `transactions_${b.blk}_${slugify(b.street)}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* Hash routing: the panel is shareable and the back button closes it. */
+function hashOpen(){
+  const m = decodeURIComponent(location.hash.slice(1));
+  if (!m.startsWith('b=')) { if (PANEL_BLOCK) closePanel(false); return; }
+  const [blk, street] = m.slice(2).split('|');
+  if (blk && street) openPanel(blk, street.toUpperCase(), '');
+}
+addEventListener('hashchange', hashOpen);
+addEventListener('keydown', e => { if (e.key === 'Escape' && PANEL_BLOCK) closePanel(); });
+
 /* ---------- table ---------- */
 const COLS = [
   ['addr','Block','t'], ['town','HDB town','t'], ['pa','URA planning area','t'],
@@ -1304,7 +1543,7 @@ function table(rows){
     else { sortKey = k; sortDir = COLS.find(c => c[0] === k)[2] === 't' ? 1 : -1; }
     table(filtered());
   });
-  $('#tbody').innerHTML = show.map(b => '<tr>' + COLS.map(c => {
+  $('#tbody').innerHTML = show.map(b => `<tr data-b="${b.blk}" data-s="${b.street}">` + COLS.map(c => {
     let v = c[0] === 'units' ? uOf(b) : c[0] === 'price' ? blockPrice(b) : b[c[0]];
     if (c[0] === 'price') return `<td class="num">${v ? sgd(v) : '—'}</td>`;
     if (c[0] === 'lat' || c[0] === 'lon') v = v == null ? '—' : v.toFixed(5);
@@ -1312,9 +1551,13 @@ function table(rows){
     else if (c[2] === 'n') v = fmt(v);
     return `<td class="${c[2]==='t'?'':'num'}">${v === '' || v == null ? '—' : v}</td>`;
   }).join('') + '</tr>').join('');
+  $('#tbody').querySelectorAll('tr').forEach(tr => tr.onclick = () => {
+    location.hash = 'b=' + encodeURIComponent(tr.dataset.b + '|' + tr.dataset.s);
+  });
+  $('#tbody').querySelectorAll('tr').forEach(tr => tr.style.cursor = 'pointer');
   $('#tcount').textContent = `${fmt(rows.length)} blocks match the current filters` +
     (rows.length > 500 ? ' — showing the first 500, sorted. Download the CSV for the full set.' : '.');
-  $('#tnote').textContent = 'Click any column header to sort.';
+  $('#tnote').textContent = 'Click a column header to sort, or a row to open its transaction history.';
 }
 
 function downloadCsv(){

@@ -32,8 +32,41 @@ def poll(ds, tries=6):
         delay = min(delay * 2, 90)
 
 
+# HDB has periodically closed one resale dataset and opened another (1990-1999,
+# 2000-2012, 2012-2014, 2015-2016, 2017-onwards). When they open a "2027 onwards"
+# dataset, the file we download simply stops growing and nothing else complains —
+# the pipeline would keep publishing quietly stale prices. Watch the collection.
+RESALE_COLLECTION = "189"
+KNOWN_CHILDREN = {
+    "d_8b84c4ee58e3cfc0ece0d773c8ca6abc",   # 2017-01 onwards  <- the one we use
+    "d_43f493c6c50d54243cc1eab0df142d6a",   # 2000-01 to 2012-02
+    "d_2d5ff9ea31397b66239f245f57751537",   # 2012-03 to 2014-12
+    "d_ebc5ab87086db484f88045b47411ebc5",   # 1990-01 to 1999-12
+    "d_ea9ed51da2787afaf8e51f827c304208",   # 2015-01 to 2016-12
+}
+
+
+def check_collection():
+    url = ("https://api-production.data.gov.sg/v2/public/api/collections/"
+           f"{RESALE_COLLECTION}/metadata")
+    try:
+        meta = requests.get(url, timeout=60).json()["data"]["collectionMetadata"]
+    except Exception as e:
+        print(f"  (could not check the resale collection: {e})")
+        return
+    new = set(meta.get("childDatasets", [])) - KNOWN_CHILDREN
+    if new:
+        print("  !! The resale collection has gained a dataset we do not read: "
+              + ", ".join(sorted(new)))
+        print("     HDB may have rolled over to a new period. Add it to DATASETS in "
+              "fetch_data.py or new transactions will stop appearing.")
+    else:
+        print(f"  resale collection unchanged ({len(meta.get('childDatasets', []))} datasets)")
+
+
 def main():
     os.makedirs(DATA, exist_ok=True)
+    check_collection()
     changed = False
     for i, (ds, name, label) in enumerate(DATASETS):
         if i:
