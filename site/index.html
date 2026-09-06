@@ -63,6 +63,9 @@ select,input[type=search]{background:var(--surface-0);color:var(--text-primary);
   border:1px solid var(--border);border-radius:7px;padding:7px 9px;font:inherit;font-size:13px;min-width:132px}
 input[type=search]{min-width:186px}
 select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+/* Must wrap: a fixed row clipped the 4th toggle off the edge on a phone, so the
+   Schools and Estate-names controls were simply unreachable there. */
+.chkrow{display:flex;flex-wrap:wrap;gap:8px;max-width:100%}
 .f label.chk{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);
   background:var(--surface-0);border:1px solid var(--border);border-radius:7px;padding:7px 10px;
   cursor:pointer;text-transform:none;letter-spacing:.01em;font-weight:400;margin:0;white-space:nowrap}
@@ -467,7 +470,7 @@ function boot(){
       <div class="f"><label for="fq">Search block / street / postal</label>
         <input type="search" id="fq" placeholder="e.g. Tampines St 96"></div>
       <div class="f"><label>Overlay</label>
-        <div style="display:flex;gap:8px">
+        <div class="chkrow">
           <label class="chk"><input type="checkbox" id="frail" checked> MRT / LRT</label>
           <label class="chk"><input type="checkbox" id="fstn" checked> Stations</label>
           <label class="chk"><input type="checkbox" id="fsch"> Schools</label>
