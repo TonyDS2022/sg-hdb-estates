@@ -394,6 +394,7 @@ const EN = {
   allTypes:'all flat types', tipCoffee:'Buy me a coffee', tipSub:'This report is free — a tip keeps it updated.',
   errRender:'Something went wrong drawing the page', errLoad:'Could not load the data', theme:'theme',
   schPrimary:'Primary', schSecondary:'Secondary', schJC:'Junior College',
+  storeyBand:'storey {b}', leaseYr:'{n}y', monthFmt:'{mon} {y}',
   srcPub:['Housing & Development Board via data.gov.sg','Singapore Land Authority',
           'Urban Redevelopment Authority via data.gov.sg'],
   srcDesc:['blocks, dwelling units, flat mix, year completed (TOP)',
@@ -460,6 +461,7 @@ const ZH = {
   allTypes:'全部类型', tipCoffee:'请我喝杯咖啡', tipSub:'本报告免费提供——您的赞助让它持续更新。',
   errRender:'页面渲染出错', errLoad:'数据载入失败', theme:'主题',
   schPrimary:'小学', schSecondary:'中学', schJC:'初级学院',
+  storeyBand:'{b} 楼', leaseYr:'{n} 年', monthFmt:'{y}年{mon}月',
   srcPub:['建屋发展局（经 data.gov.sg）','新加坡土地管理局','市区重建局（经 data.gov.sg）'],
   srcDesc:['座数、单位数量、户型构成、落成年份（TOP）','每座的经纬度与邮区编号','规划区与区域，以点面判定法归属'],
   derived:'衍生字段 —— <b>MOP</b> ＝ 落成年份 ＋ 5（估算）；<b>剩余地契</b> ＝ 99 −（当前年份 − 落成年份），属近似值，因地契在落成前已开始起算；<b>规划区</b>以点面判定法对照市区重建局 2019 年总蓝图边界归属，因此「中区」这类组屋市镇会落入欧南、梧槽等规划区。',
@@ -492,6 +494,14 @@ const ZH_PA = {
   'Sengkang':'盛港','Serangoon':'实龙岗','Tampines':'淡滨尼','Tanglin':'东陵',
   'Tengah':'登加','Toa Payoh':'大巴窑','Woodlands':'兀兰','Yishun':'义顺',
 };
+/* Rail lines carry official Chinese names, unlike streets and projects. */
+const ZH_RAIL = {
+  'North South Line':'南北线','East West Line':'东西线','North East Line':'东北线',
+  'Circle Line':'环线','Downtown Line':'市区线','Thomson–East Coast Line':'汤申—东海岸线',
+  'Jurong Region Line':'裕廊区域线','Cross Island Line':'跨岛线',
+  'Bukit Panjang LRT':'武吉班让轻轨','Sengkang LRT':'盛港轻轨','Punggol LRT':'榜鹅轻轨',
+  'LRT networks':'轻轨系统',
+};
 const ZH_TYPE = {u1:'一房式', u2:'二房式', u3:'三房式', u4:'四房式', u5:'五房式',
                  uex:'公寓式', uoth:'多代同堂／乐龄公寓', urent:'租赁'};
 const ZH_ERA = {pre1980:'1980年以前', '1980s':'1980年代', '1990s':'1990年代',
@@ -501,6 +511,7 @@ let LANG = 'en', T = EN;
 const zhTown = v => (LANG === 'zh' && ZH_TOWN[v]) || v;
 const zhRegion = v => (LANG === 'zh' && ZH_REGION[v]) || v;
 const zhPa = v => (LANG === 'zh' && ZH_PA[v]) || v;
+const zhRail = v => (LANG === 'zh' && ZH_RAIL[v]) || v;
 const zhType = k => (LANG === 'zh' && ZH_TYPE[k]) || (TYPES.find(x => x.k === k) || {}).lbl || k;
 const zhEra = k => (LANG === 'zh' && ZH_ERA[k]) || (DECADES.find(d => d.k === k) || {}).lbl || k;
 /* t('key', {n: 5}) — fills {placeholders} */
@@ -1165,11 +1176,16 @@ function priceOf(a){
                  : {v:a[RS.LASTP], n:1, cur:false, last:a[RS.LAST]};
 }
 const sgd = k => 'S$' + (k >= 1000 ? (k/1000).toFixed(2).replace(/\.?0+$/,'') + 'M' : k + 'k');
+/* Chinese writes the year first and numbers its months, so a month label cannot be
+   assembled from an English abbreviation list. */
+function fmtMonth(mi){
+  const y = Math.floor(mi / 12), m = (mi % 12) + 1;
+  return t('monthFmt', {y, mon: LANG === 'zh' ? m
+    : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m - 1]});
+}
 function monthLabel(i){
   const base = (DB.resaleMeta || {}).base_month || '2017-01';
-  const mi = (+base.slice(0,4)) * 12 + (+base.slice(5,7)) - 1 + i;
-  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mi % 12]
-       + ' ' + Math.floor(mi / 12);
+  return fmtMonth((+base.slice(0,4)) * 12 + (+base.slice(5,7)) - 1 + i);
 }
 /* Weighted median: prices are skewed, so a mean would be pulled by the top end. */
 function wMedian(pairs){
@@ -1347,7 +1363,7 @@ function railLegend(){
     const key = p.lrt ? 'LRT' : p.ref;
     if (seen.has(key)) return;
     seen.add(key);
-    rows.push({c:p.colour, lbl: p.lrt ? 'LRT networks' : p.name, b:p.building});
+    rows.push({c:p.colour, lbl: zhRail(p.lrt ? 'LRT networks' : p.name), b:p.building});
   });
   return `<div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--border)">
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">${t('lgRail')}</div>`
@@ -1631,8 +1647,7 @@ async function txFor(street){
 }
 
 function mLabel(i){
-  const mi = 2017*12 + i;
-  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mi%12] + ' ' + Math.floor(mi/12);
+  return fmtMonth(2017*12 + i);
 }
 const psfOf = (price100, sqm) => (price100*100)/(sqm*10.763910417);
 
@@ -1718,7 +1733,7 @@ function renderPanel(b, rec){
     `<tr><td>${mLabel(r.m)}</td><td>${txLabel(r.code)}</td>
      <td class="n">${r.storey}–${r.storey+2}</td><td class="n">${r.sqm}</td>
      <td class="n">${fmt(r.price)}</td><td class="n">${Math.round(r.psf)}</td>
-     <td class="n">${r.lease}y</td></tr>`).join('');
+     <td class="n">${t('leaseYr', {n: r.lease})}</td></tr>`).join('');
 
   host.innerHTML =
     `<h4>${t('pSummary')}</h4>
@@ -1763,7 +1778,7 @@ function priceScatter(rows){
   const pmax = niceMax(Math.max(...ps)), iw = W-M.l-M.r, ph = H-M.t-M.b;
   const band = st => st < 10 ? 0 : st < 19 ? 1 : st < 28 ? 2 : 3;
   const COL = ['var(--ord-1)','var(--ord-2)','var(--ord-4)','var(--ord-5)'];
-  const LBL = ['1–9','10–18','19–27','28+'];
+  const LBL = ['1–9','10–18','19–27','28+'];   // numeric, so they need no translation
   let g = '';
   for (let i = 0; i <= 4; i++){
     const y = M.t + ph - ph*i/4;
@@ -1774,7 +1789,7 @@ function priceScatter(rows){
     const x = M.l + (m1===m0 ? iw/2 : (r.m-m0)/(m1-m0)*iw);
     const y = M.t + ph - r.psf/pmax*ph;
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6" fill="${COL[band(r.storey)]}"
-             fill-opacity=".85" stroke="var(--surface-0)" stroke-width="1"><title>${mLabel(r.m)} · storey ${r.storey}–${r.storey+2} · ${Math.round(r.psf)} psf · ${fmt(r.price)}</title></circle>`;
+             fill-opacity=".85" stroke="var(--surface-0)" stroke-width="1"><title>${mLabel(r.m)} · ${t('storeyBand', {b: r.storey + '–' + (r.storey+2)})} · ${Math.round(r.psf)} ${t('pPsf')} · ${fmt(r.price)}</title></circle>`;
   }).join('');
   const yrs = [];
   for (let m = m0; m <= m1; m++) if ((2017*12+m) % 12 === 0) yrs.push(m);
@@ -1783,7 +1798,7 @@ function priceScatter(rows){
      <text x="${M.l}" y="10" class="axlabel">S$ per sqft</text>${g}
      <line x1="${M.l}" x2="${W-M.r}" y1="${H-M.b}" y2="${H-M.b}" class="axis"/>${xl}${pts}</svg>
    <div class="legend" style="margin:0 0 4px">` +
-   LBL.map((l,i) => `<span class="it"><span class="sw" style="background:${COL[i]}"></span>storey ${l}</span>`).join('') + `</div>`;
+   LBL.map((l,i) => `<span class="it"><span class="sw" style="background:${COL[i]}"></span>${t('storeyBand', {b: l})}</span>`).join('') + `</div>`;
 }
 
 function txCsv(b, rows){
