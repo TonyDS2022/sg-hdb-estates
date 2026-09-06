@@ -214,6 +214,18 @@ would otherwise break silently, and each is now guarded:
 `site/tx/` files are committed, which also means git retains the history even if upstream
 ever revises or withdraws it.
 
+### Smoke test
+
+```bash
+python3 serve.py &                 # or point it at the live URL
+.pw/bin/python smoke.py https://sg-hdb-estates.tz-sg.workers.dev/
+```
+
+Asserts the **main page** renders: tiles, charts, source rows, table rows, map canvas, no
+error card and no console errors — on both a plain load and a deep link. This exists because
+a crash in `boot()` once shipped: the panel tests passed, since the panel is a sibling of
+`#app` and survived the crash that blanked the page behind it. Exits non-zero on failure.
+
 ### Rail overlay
 
 `fetch_rail.py` pulls MRT/LRT route relations from OpenStreetMap and writes
