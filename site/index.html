@@ -399,7 +399,20 @@ loadData().then(async d => {
   HAS_RESALE = Array.isArray(d.resale) && d.resale.some(Boolean);
   F.y0 = d.meta.year_min; F.y1 = d.meta.year_max;
   HAS_BASEMAP = await initBasemap();
-  boot();
+  /* boot() gets its own handler. Wrapped in the fetch catch below, ANY rendering bug
+     was reported as "could not load the data — check your proxy / trailing slash",
+     which sent the reader chasing a network problem that did not exist. */
+  try {
+    boot();
+  } catch (e) {
+    console.error(e);
+    $('#app').className = '';
+    $('#app').innerHTML = `<div class="card" style="border-color:var(--series-8)">
+      <h2>Something went wrong drawing the page</h2>
+      <p class="note" style="margin-bottom:12px">${String(e)}</p>
+      <p class="note">The data loaded correctly — this is a bug in the report itself,
+      not a problem with your connection. Please report it with the message above.</p></div>`;
+  }
 }).catch(e => {
   $('#app').className = '';
   $('#app').innerHTML = `<div class="card" style="border-color:var(--series-4)">
@@ -573,7 +586,7 @@ function boot(){
   $('#scrim').onclick = () => closePanel();
   if (location.hash) hashOpen();
 
-  $('#src').innerHTML = m.sources.map(s =
+  $('#src').innerHTML = m.sources.map(s =>
     `<tr><td style="color:var(--text-secondary);font-weight:600">${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td></tr>`).join('');
 
   render();
