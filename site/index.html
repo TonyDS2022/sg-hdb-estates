@@ -42,12 +42,17 @@
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--surface-0);color:var(--text-primary);
-  font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,
+    "PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
   -webkit-font-smoothing:antialiased}
 .wrap{max-width:1280px;margin:0 auto;padding:32px 24px 64px}
 header h1{font-size:26px;font-weight:650;letter-spacing:-.02em;margin:0 0 6px}
 header p.sub{margin:0;color:var(--text-secondary);max-width:70ch}
 .provenance{margin-top:10px;font-size:12px;color:var(--text-muted)}
+.langbtn{position:absolute;top:24px;right:104px;background:var(--surface-1);
+  border:1px solid var(--border);color:var(--text-secondary);border-radius:7px;
+  padding:6px 11px;cursor:pointer;font-size:12px}
+.langbtn:hover{color:var(--text-primary)}
 .themebtn{position:absolute;top:24px;right:24px;background:var(--surface-1);
   border:1px solid var(--border);color:var(--text-secondary);border-radius:7px;
   padding:6px 11px;cursor:pointer;font-size:12px}
@@ -209,12 +214,12 @@ footer td{border:0;padding:3px 14px 3px 0;white-space:normal;vertical-align:top}
 </style>
 </head>
 <body>
-<button class="themebtn" id="themebtn">◐ theme</button>
+<button class="langbtn" id="langbtn"></button>
+<button class="themebtn" id="themebtn"></button>
 <div class="wrap">
 <header>
-  <h1>Singapore HDB Estate Database</h1>
-  <p class="sub">Every residential HDB block in Singapore — dwelling units, year of completion (TOP),
-  estimated MOP, geocoded coordinates and URA planning area — assembled from three official sources.</p>
+  <h1 id="pgtitle"></h1>
+  <p class="sub" id="pgsub"></p>
   <div class="provenance" id="prov">Loading…</div>
 </header>
 
@@ -230,7 +235,7 @@ footer td{border:0;padding:3px 14px 3px 0;white-space:normal;vertical-align:top}
 
 <script>
 const $ = s => document.querySelector(s);
-const fmt = n => n.toLocaleString('en-SG');
+const fmt = n => n.toLocaleString(LANG === 'zh' ? 'zh-SG' : 'en-SG');
 const SER = i => `var(--series-${i})`;
 const ORD = i => `var(--ord-${i})`;
 
@@ -289,7 +294,7 @@ let DB = null, F = {region:'', town:'', pa:'', y0:null, y1:null, q:'', utype:''}
 /* With a flat type selected every count becomes that type's count, so the tiles,
    map, charts and table all describe the same stock the filter names. */
 const uOf = b => F.utype ? b[F.utype] : b.units;
-const uLabel = () => F.utype ? (TYPES.find(t => t.k === F.utype) || {}).lbl + ' units' : 'Dwelling units';
+const uLabel = () => F.utype ? zhType(F.utype) + (LANG === 'zh' ? '单位' : ' units') : t('tUnits');
 let sortKey = 'units', sortDir = -1;
 
 /* Five era bins, not seven: the one-hue blue ramp only supports five steps that
@@ -309,6 +314,201 @@ const TYPES = [
   {k:'u5', lbl:'5-room', s:5}, {k:'uex', lbl:'Executive', s:6},
   {k:'uoth', lbl:'Multi-gen / Studio', s:7}, {k:'urent', lbl:'Rental', s:8},
 ];
+
+/* ---------- i18n ----------
+   Language lives in the query string (?lang=zh) so it survives the hash the block
+   panel uses, making "this block, in Chinese" a single shareable URL. Street,
+   project and school names stay in English: they have no official Chinese form,
+   and Singapore addresses are written in English even in Chinese-language media. */
+const EN = {
+  title:'Singapore HDB Estate Database',
+  sub:'Every residential HDB block in Singapore — dwelling units, year of completion (TOP), estimated MOP, geocoded coordinates and URA planning area — assembled from three official sources.',
+  provBlocks:'residential blocks', provUnits:'dwelling units', provGeo:'geocoded',
+  provResale:'resale to', provBuilt:'built',
+  fRegion:'Region', fRegionAll:'All regions', fTown:'HDB town', fTownAll:'All towns',
+  fPa:'URA planning area', fPaAll:'All planning areas', fType:'Flat type', fTypeAll:'All flat types',
+  fYears:'TOP year range', fSearch:'Search block / street / postal', fSearchPh:'e.g. Tampines St 96',
+  fOverlay:'Overlay', fRail:'MRT / LRT', fStations:'Stations', fSchools:'Schools', fNames:'Estate names',
+  reset:'Reset', csv:'Download CSV',
+  tBlocks:'Blocks', tUnits:'Dwelling units', tMedTop:'Median TOP year', tPa:'Planning areas',
+  tRental:'Rental units', tResale:'Median resale (LTM)',
+  tAllBlocks:'all residential blocks', tOfTotal:'of {n} total', tContaining:'containing {t} flats',
+  tAvgPer:'avg {n} per block', tYearsOld:'{n} years old', tTowns:'{n} HDB towns',
+  tOfStock:'{p}% of stock', tSold12:'{n} sold in 12m to {m}', tNoRecent:'no sales in 12m',
+  cMap:'Where the flats are',
+  cMapNote:'Every geocoded block on a Mapbox basemap, shaded by the decade it was completed. Dot area is proportional to dwelling units. Zoom in to resolve individual blocks.',
+  cEstate:'Estate summary',
+  cEstateNote:'One row per HDB town — the level HDB itself plans and names estates at. Click a row to filter the whole report to that estate.',
+  cYear:'Dwelling units completed each year', cYearNote:'Year of TOP. Each bar is the number of units in blocks completed that year.',
+  cMix:'Flat-type mix by decade',
+  cMixNote:'Dwelling units by flat type and decade of completion. Rental flats are a tenure rather than a type — HDB counts them in total dwelling units but leaves them out of the sold flat-type breakdown, so they are shown as their own segment here.',
+  cPa:'Largest planning areas', cPaNote:'Dwelling units by URA planning area, top 15.',
+  cPrice:'Resale prices', cMop:'Upcoming MOP',
+  cMopNote:'Units estimated to reach their 5-year Minimum Occupation Period, by year.',
+  cMopWarn:'<b>Estimate.</b> MOP runs 5 years from key collection, which HDB does not publish per block. This uses year of completion + 5 as a proxy, so it can be out by a year either way. Prime and Plus flats (from 2024) carry a 10-year MOP and are not separately flagged in the source data.',
+  cAll:'All blocks',
+  axUnits:'Dwelling units', axPrice:'Median resale price',
+  lgCompleted:'Completed', lgRail:'Rail', lgSchools:'MOE schools',
+  lgInterchange:'Interchange', lgStation:'Station', lgBuilding:'building',
+  lgDotNote:'Dot area ∝ dwelling units. Hover for detail, click for listings; scroll to zoom.',
+  lgRailNote:'Dashed lines and faint stations are under construction. Station names appear as you zoom in. Geometry © OpenStreetMap contributors.',
+  lgSchNote:'Squares, to keep them apart from blocks and stations. The 1 km / 2 km registration priority applies to primary schools only. Names appear as you zoom in.',
+  colBlock:'Block', colTown:'HDB town', colPa:'URA planning area', colRegion:'Region',
+  colUnits:'Units', colStoreys:'Storeys', colTop:'TOP', colMop:'MOP est.', colResale:'Resale (LTM)',
+  colLat:'Lat', colLon:'Lon', colPostal:'Postal',
+  eBlocks:'Blocks', eUnits:'Units', eSpan:'TOP range', eAge:'Median age',
+  ePa:'Main planning area', eMopUp:'Units still in MOP',
+  tblCount:'{n} blocks match the current filters', tblFirst:' — showing the first 500, sorted. Download the CSV for the full set.',
+  tblSort:'Click a column header to sort, or a row to open its transaction history.',
+  pSummary:'Summary by flat type and size', pAllTx:'All transactions', pListings:'Live listings',
+  pType:'Type', pSqm:'sqm', pSales:'Sales', pMedAll:'Median all', pMedLtm:'Median LTM',
+  pNLtm:'n LTM', pLast:'Last sale', pMonth:'Month', pStorey:'Storey', pPrice:'Price',
+  pPsf:'psf', pLease:'Lease', pAllTypes:'All types',
+  pSplitNote:'Split by floor area as well as flat type — one block can hold two layouts under the same name, and a blended median describes neither. Muted rows have fewer than two sales in the last twelve months.',
+  pUnitNote:'HDB publishes a three-storey band and no unit number, so a specific flat cannot be tracked across sales — two rows in the same band and size may or may not be the same home. Prices are as registered with HDB.',
+  pTxCsv:'Download these transactions (CSV)', pLoading:'Loading transactions…',
+  pNoTx:'No resale transactions recorded since 2017 for this block — typically a newer block still within its MOP, or rental-only.',
+  pgBlock:'Listings in block {b}', pgProject:'Listings in {p}', pgStreet:'Listings on {s}',
+  pgNote:'PropertyGuru searches, opening in a new tab. A single block often has no active listing — the project and street searches are the fallbacks.',
+  pgFiltered:', filtered to {t}',
+  pUnits:'units', pStoreysW:'storeys', pLeaseLeft:'years lease remaining', pFrom:'from',
+  clickHint:'Click for full history', noSel:'Nothing in this selection.', noGeo:'No geocoded blocks in this selection.',
+  srcHead:'Sources', priceNoteA:'Median resale price by year of sale, {t}, for the estates in the current selection.',
+  priceNoteB:'{n} transactions, {a} to {b}.', priceLegend:'Aggregated from HDB town medians, weighted by transaction count. 2026 is a partial year.',
+  allTypes:'all flat types', tipCoffee:'Buy me a coffee', tipSub:'This report is free — a tip keeps it updated.',
+  errRender:'Something went wrong drawing the page', errLoad:'Could not load the data', theme:'theme',
+  schPrimary:'Primary', schSecondary:'Secondary', schJC:'Junior College',
+};
+const ZH = {
+  title:'新加坡组屋数据库',
+  sub:'全新加坡每一座住宅组屋 —— 单位数量、落成年份（TOP）、预计屋主最短居住期（MOP）、地理坐标与市区重建局规划区，整合自三个官方数据源。',
+  provBlocks:'座住宅组屋', provUnits:'个单位', provGeo:'已定位',
+  provResale:'转售数据截至', provBuilt:'生成于',
+  fRegion:'区域', fRegionAll:'全部区域', fTown:'组屋市镇', fTownAll:'全部市镇',
+  fPa:'市区重建局规划区', fPaAll:'全部规划区', fType:'单位类型', fTypeAll:'全部类型',
+  fYears:'落成年份范围', fSearch:'搜索座号／街道／邮区', fSearchPh:'例如 Tampines St 96',
+  fOverlay:'图层', fRail:'地铁／轻轨', fStations:'车站', fSchools:'学校', fNames:'市镇名称',
+  reset:'重置', csv:'下载 CSV',
+  tBlocks:'组屋座数', tUnits:'单位总数', tMedTop:'落成年份中位数', tPa:'规划区',
+  tRental:'租赁单位', tResale:'转售中位价（近12个月）',
+  tAllBlocks:'全部住宅组屋', tOfTotal:'共 {n} 座', tContaining:'含{t}单位',
+  tAvgPer:'平均每座 {n} 个单位', tYearsOld:'楼龄 {n} 年', tTowns:'{n} 个市镇',
+  tOfStock:'占总量 {p}%', tSold12:'截至 {m} 的12个月内成交 {n} 宗', tNoRecent:'近12个月无成交',
+  cMap:'组屋分布图',
+  cMapNote:'每一座已定位的组屋，按落成年代着色，圆点面积与单位数量成正比。放大可看清单座组屋。',
+  cEstate:'市镇概览',
+  cEstateNote:'每行一个组屋市镇——这是建屋局规划与命名的层级。点击任意行可将整份报告筛选至该市镇。',
+  cYear:'各年落成单位数', cYearNote:'按落成（TOP）年份统计，每根柱为该年落成组屋的单位总数。',
+  cMix:'各年代单位类型构成',
+  cMixNote:'按单位类型与落成年代统计。租赁组屋属于持有方式而非户型——建屋局将其计入单位总数，却不列入已售户型明细，因此在此单列一段。',
+  cPa:'规划区单位数排名', cPaNote:'按市区重建局规划区统计单位数量，前15名。',
+  cPrice:'转售价格', cMop:'即将届满 MOP',
+  cMopNote:'按年份统计预计届满五年最短居住期（MOP）的单位数量。',
+  cMopWarn:'<b>此为估算。</b>MOP 自领取钥匙起计五年，而建屋局并未逐座公布领匙日期。此处以落成年份加五年作为替代，前后可能相差一年。2024 年起的 Prime 与 Plus 组屋 MOP 为十年，原始数据中并未单独标示。',
+  cAll:'全部组屋',
+  axUnits:'单位数量', axPrice:'转售中位价',
+  lgCompleted:'落成年代', lgRail:'轨道交通', lgSchools:'教育部学校',
+  lgInterchange:'转换站', lgStation:'车站', lgBuilding:'兴建中',
+  lgDotNote:'圆点面积 ∝ 单位数量。悬停查看详情，点击查看完整记录；滚动可缩放。',
+  lgRailNote:'虚线与浅色车站为兴建中。放大后显示站名。线路数据 © OpenStreetMap 贡献者。',
+  lgSchNote:'以方形标示，以便与组屋和车站区分。小一报名的 1 公里／2 公里优先权仅适用于小学。放大后显示校名。',
+  colBlock:'座号', colTown:'组屋市镇', colPa:'规划区', colRegion:'区域',
+  colUnits:'单位', colStoreys:'层数', colTop:'落成', colMop:'预计MOP', colResale:'转售价（近12月）',
+  colLat:'纬度', colLon:'经度', colPostal:'邮区',
+  eBlocks:'座数', eUnits:'单位', eSpan:'落成年份', eAge:'楼龄中位数',
+  ePa:'主要规划区', eMopUp:'仍在MOP内',
+  tblCount:'符合当前筛选的组屋共 {n} 座', tblFirst:' —— 仅显示前 500 条（已排序），完整数据请下载 CSV。',
+  tblSort:'点击表头排序，点击任意行查看该座的交易记录。',
+  pSummary:'按单位类型与面积汇总', pAllTx:'全部交易', pListings:'在售房源',
+  pType:'类型', pSqm:'平方米', pSales:'成交', pMedAll:'全期中位', pMedLtm:'近12月中位',
+  pNLtm:'近12月笔数', pLast:'最近成交', pMonth:'月份', pStorey:'楼层', pPrice:'价格',
+  pPsf:'每平方英尺', pLease:'剩余地契', pAllTypes:'全部类型',
+  pSplitNote:'按面积与户型分别统计——同一座组屋可能有两种同名但面积不同的户型，混在一起的中位数无法描述其中任何一种。浅色行表示近12个月成交少于两宗。',
+  pUnitNote:'建屋局只公布三层为一组的楼层区间，不公布单位号码，因此无法追踪某一特定单位的历次成交——同一楼层区间与面积的两笔记录未必是同一户。价格为向建屋局登记的成交价。',
+  pTxCsv:'下载这些交易记录（CSV）', pLoading:'正在载入交易记录…',
+  pNoTx:'该座自 2017 年以来没有转售记录——通常是仍在 MOP 内的新组屋，或纯租赁组屋。',
+  pgBlock:'第 {b} 座的房源', pgProject:'{p} 的房源', pgStreet:'{s} 的房源',
+  pgNote:'PropertyGuru 搜索，将在新标签页打开。单座组屋往往没有在售房源，可改用项目或街道搜索。',
+  pgFiltered:'，已筛选为{t}',
+  pUnits:'个单位', pStoreysW:'层', pLeaseLeft:'年剩余地契', pFrom:'起算',
+  clickHint:'点击查看完整记录', noSel:'当前筛选无数据。', noGeo:'当前筛选没有已定位的组屋。',
+  srcHead:'数据来源', priceNoteA:'按成交年份统计的转售中位价（{t}），范围为当前筛选的市镇。',
+  priceNoteB:'共 {n} 宗交易，{a} 至 {b}。', priceLegend:'由各组屋市镇的中位价按成交量加权汇总。2026 年为部分年份数据。',
+  allTypes:'全部类型', tipCoffee:'请我喝杯咖啡', tipSub:'本报告免费提供——您的赞助让它持续更新。',
+  errRender:'页面渲染出错', errLoad:'数据载入失败', theme:'主题',
+  schPrimary:'小学', schSecondary:'中学', schJC:'初级学院',
+};
+/* Data values with official Chinese names. Streets, projects and school names are
+   deliberately absent — they have no official Chinese form. */
+const ZH_TOWN = {
+  'Ang Mo Kio':'宏茂桥','Bedok':'勿洛','Bishan':'碧山','Bukit Batok':'武吉巴督',
+  'Bukit Merah':'红山','Bukit Panjang':'武吉班让','Bukit Timah':'武吉知马','Central Area':'中区',
+  'Choa Chu Kang':'蔡厝港','Clementi':'金文泰','Geylang':'芽笼','Hougang':'后港',
+  'Jurong East':'裕廊东','Jurong West':'裕廊西','Kallang/Whampoa':'加冷／黄埔','Marine Parade':'马林百列',
+  'Pasir Ris':'巴西立','Punggol':'榜鹅','Queenstown':'女皇镇','Sembawang':'三巴旺',
+  'Sengkang':'盛港','Serangoon':'实龙岗','Tampines':'淡滨尼','Tengah':'登加',
+  'Toa Payoh':'大巴窑','Woodlands':'兀兰','Yishun':'义顺',
+};
+const ZH_REGION = {
+  'Central Region':'中部区域','East Region':'东部区域','North Region':'北部区域',
+  'North-East Region':'东北部区域','West Region':'西部区域',
+};
+/* Only the 32 planning areas that actually contain HDB blocks; the remaining 23 are
+   industrial, catchment or island areas that never appear in this data. */
+const ZH_PA = {
+  'Ang Mo Kio':'宏茂桥','Bedok':'勿洛','Bishan':'碧山','Bukit Batok':'武吉巴督',
+  'Bukit Merah':'红山','Bukit Panjang':'武吉班让','Bukit Timah':'武吉知马','Changi':'樟宜',
+  'Choa Chu Kang':'蔡厝港','Clementi':'金文泰','Downtown Core':'市中心','Geylang':'芽笼',
+  'Hougang':'后港','Jurong East':'裕廊东','Jurong West':'裕廊西','Kallang':'加冷',
+  'Marine Parade':'马林百列','Novena':'诺维娜','Outram':'欧南','Pasir Ris':'巴西立',
+  'Punggol':'榜鹅','Queenstown':'女皇镇','Rochor':'梧槽','Sembawang':'三巴旺',
+  'Sengkang':'盛港','Serangoon':'实龙岗','Tampines':'淡滨尼','Tanglin':'东陵',
+  'Tengah':'登加','Toa Payoh':'大巴窑','Woodlands':'兀兰','Yishun':'义顺',
+};
+const ZH_TYPE = {u1:'一房式', u2:'二房式', u3:'三房式', u4:'四房式', u5:'五房式',
+                 uex:'公寓式', uoth:'多代同堂／乐龄公寓', urent:'租赁'};
+const ZH_ERA = {pre1980:'1980年以前', '1980s':'1980年代', '1990s':'1990年代',
+                '2000s':'2000年代', '2010s':'2010年至今'};
+
+let LANG = 'en', T = EN;
+const zhTown = v => (LANG === 'zh' && ZH_TOWN[v]) || v;
+const zhRegion = v => (LANG === 'zh' && ZH_REGION[v]) || v;
+const zhPa = v => (LANG === 'zh' && ZH_PA[v]) || v;
+const zhType = k => (LANG === 'zh' && ZH_TYPE[k]) || (TYPES.find(x => x.k === k) || {}).lbl || k;
+const zhEra = k => (LANG === 'zh' && ZH_ERA[k]) || (DECADES.find(d => d.k === k) || {}).lbl || k;
+/* t('key', {n: 5}) — fills {placeholders} */
+function t(k, vars){
+  let v = (T[k] !== undefined ? T[k] : EN[k]) || '';
+  if (vars) for (const p in vars) v = v.split('{' + p + '}').join(vars[p]);
+  return v;
+}
+
+function pickLang(){
+  const q = new URLSearchParams(location.search).get('lang');
+  if (q === 'zh' || q === 'en') return q;
+  try { const st = localStorage.getItem('lang'); if (st) return st; } catch {}
+  return (navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function setLang(l, push){
+  LANG = (l === 'zh') ? 'zh' : 'en';
+  T = LANG === 'zh' ? ZH : EN;
+  document.documentElement.lang = LANG === 'zh' ? 'zh-Hans-SG' : 'en-SG';
+  try { localStorage.setItem('lang', LANG); } catch {}
+  if (push){
+    const u = new URL(location.href);
+    if (LANG === 'en') u.searchParams.delete('lang'); else u.searchParams.set('lang', 'zh');
+    history.replaceState('', '', u.pathname + u.search + u.hash);
+  }
+}
+
+setLang(pickLang(), false);
+const lb = $('#langbtn');
+lb.textContent = LANG === 'zh' ? 'EN' : '中文';
+lb.onclick = () => {
+  setLang(LANG === 'zh' ? 'en' : 'zh', true);
+  if (DB) boot();                      // rebuild the page in the new language
+};
 
 /* ---------- load ---------- */
 /* Behind a path-mounting proxy (code-server's /proxy/<port>, Jupyter, nginx) a URL
@@ -335,8 +535,8 @@ async function initBasemap(){
     await loadAsset('link', {rel:'stylesheet', href: BASE + 'vendor/mapbox-gl.css'});
     await loadAsset('script', {src: BASE + 'vendor/mapbox-gl.js'});
     await loadAsset('script', {src: BASE + 'config.js'});
-    const t = window.MAP_CONFIG && window.MAP_CONFIG.token;
-    if (t && window.mapboxgl){ mapboxgl.accessToken = t; await loadRail(); return true; }
+    const tok = window.MAP_CONFIG && window.MAP_CONFIG.token;
+    if (tok && window.mapboxgl){ mapboxgl.accessToken = tok; await loadRail(); return true; }
   } catch (e) { console.warn('basemap unavailable, using scatter:', e.message); }
   return false;
 }
@@ -395,7 +595,7 @@ loadData().then(async d => {
     console.error(e);
     $('#app').className = '';
     $('#app').innerHTML = `<div class="card" style="border-color:var(--series-8)">
-      <h2>Something went wrong drawing the page</h2>
+      <h2>${t('errRender')}</h2>
       <p class="note" style="margin-bottom:12px">${String(e)}</p>
       <p class="note">The data loaded correctly — this is a bug in the report itself,
       not a problem with your connection. Please report it with the message above.</p></div>`;
@@ -403,7 +603,7 @@ loadData().then(async d => {
 }).catch(e => {
   $('#app').className = '';
   $('#app').innerHTML = `<div class="card" style="border-color:var(--series-4)">
-    <h2>Could not load the data</h2>
+    <h2>${t('errLoad')}</h2>
     <p class="note" style="margin-bottom:12px">${String(e).replace(/^Error: /, '')}</p>
     <p class="note">This page and <code>data.json</code> must come from the same server.
     Opening the HTML file directly, or previewing it in an IDE, breaks that.</p>
@@ -418,22 +618,27 @@ function uniq(f){ return [...new Set(DB.blocks.map(f).filter(Boolean))].sort(); 
 
 function boot(){
   const m = DB.meta;
+  document.title = t('title');
+  $('#pgtitle').textContent = t('title');
+  $('#pgsub').textContent = t('sub');
+  $('#langbtn').textContent = LANG === 'zh' ? 'EN' : '中文';
+  $('#themebtn').textContent = '◐ ' + t('theme');
   $('#prov').innerHTML =
-    `${fmt(m.blocks)} residential blocks · ${fmt(m.units)} dwelling units · TOP ${m.year_min}–${m.year_max}
-     · ${m.geocoded_pct}% geocoded${(DB.resaleMeta||{}).latest_month
-        ? ' · resale to ' + (DB.resaleMeta||{}).latest_month : ''} · built ${m.generated}`;
+    `${fmt(m.blocks)} ${t('provBlocks')} · ${fmt(m.units)} ${t('provUnits')} · TOP ${m.year_min}–${m.year_max}
+     · ${m.geocoded_pct}% ${t('provGeo')}${(DB.resaleMeta||{}).latest_month
+        ? ' · ' + t('provResale') + ' ' + (DB.resaleMeta||{}).latest_month : ''} · ${t('provBuilt')} ${m.generated}`;
 
   $('#app').className = '';
   $('#app').innerHTML = `
     <div class="filters">
-      <div class="f"><label for="fr">Region</label><select id="fr"></select></div>
-      <div class="f"><label for="ft">HDB town</label><select id="ft"></select></div>
-      <div class="f"><label for="fp">URA planning area</label><select id="fp"></select></div>
-      <div class="f"><label for="fu">Flat type</label><select id="fu">
-        <option value="">All flat types</option>
-        ${TYPES.map(t => `<option value="${t.k}">${t.lbl}</option>`).join('')}
+      <div class="f"><label for="fr">${t('fRegion')}</label><select id="fr"></select></div>
+      <div class="f"><label for="ft">${t('fTown')}</label><select id="ft"></select></div>
+      <div class="f"><label for="fp">${t('fPa')}</label><select id="fp"></select></div>
+      <div class="f"><label for="fu">${t('fType')}</label><select id="fu">
+        <option value="">${t('fTypeAll')}</option>
+        ${TYPES.map(x => `<option value="${x.k}">${zhType(x.k)}</option>`).join('')}
       </select></div>
-      <div class="f"><label for="fn0">TOP year range</label>
+      <div class="f"><label for="fn0">${t('fYears')}</label>
         <div class="yearctl">
           <input type="number" class="yrnum" id="fn0" min="${m.year_min}" max="${m.year_max}"
                  step="1" aria-label="Earliest year of completion">
@@ -448,56 +653,50 @@ function boot(){
           <input type="range" id="fy1" min="${m.year_min}" max="${m.year_max}" step="1"
                  aria-hidden="true" tabindex="-1">
         </div></div>
-      <div class="f"><label for="fq">Search block / street / postal</label>
-        <input type="search" id="fq" placeholder="e.g. Tampines St 96"></div>
-      <div class="f"><label>Overlay</label>
+      <div class="f"><label for="fq">${t('fSearch')}</label>
+        <input type="search" id="fq" placeholder="${t('fSearchPh')}"></div>
+      <div class="f"><label>${t('fOverlay')}</label>
         <div class="chkrow">
-          <label class="chk"><input type="checkbox" id="frail" checked> MRT / LRT</label>
-          <label class="chk"><input type="checkbox" id="fstn" checked> Stations</label>
-          <label class="chk"><input type="checkbox" id="fsch"> Schools</label>
-          <label class="chk"><input type="checkbox" id="fnames" checked> Estate names</label>
+          <label class="chk"><input type="checkbox" id="frail" checked> ${t('fRail')}</label>
+          <label class="chk"><input type="checkbox" id="fstn" checked> ${t('fStations')}</label>
+          <label class="chk"><input type="checkbox" id="fsch"> ${t('fSchools')}</label>
+          <label class="chk"><input type="checkbox" id="fnames" checked> ${t('fNames')}</label>
         </div></div>
-      <button class="btn" id="freset">Reset</button>
-      <button class="btn" id="fcsv">Download CSV</button>
+      <button class="btn" id="freset">${t('reset')}</button>
+      <button class="btn" id="fcsv">${t('csv')}</button>
     </div>
     <div class="tiles" id="tiles"></div>
-    <div class="card"><h2>Where the flats are</h2>
-      <p class="note">Every geocoded block on a Mapbox basemap, shaded by the decade it was completed.
-      Dot area is proportional to dwelling units. Zoom in to resolve individual blocks.</p>
+    <div class="card"><h2>${t('cMap')}</h2>
+      <p class="note">${t('cMapNote')}</p>
       <div class="maprow"><div id="map"></div><div id="maplegend"></div></div></div>
-    <div class="card" style="margin-top:16px"><h2>Estate summary</h2>
-      <p class="note">One row per HDB town — the level HDB itself plans and names estates at.
-      Click a row to filter the whole report to that estate.</p>
+    <div class="card" style="margin-top:16px"><h2>${t('cEstate')}</h2>
+      <p class="note">${t('cEstateNote')}</p>
       <div class="tblwrap" style="max-height:none"><table><thead id="ethead"></thead><tbody id="etbody"></tbody></table></div></div>
-    <div class="card" style="margin-top:16px"><h2>Dwelling units completed each year</h2>
-      <p class="note">Year of TOP. Each bar is the number of units in blocks completed that year.</p>
+    <div class="card" style="margin-top:16px"><h2>${t('cYear')}</h2>
+      <p class="note">${t('cYearNote')}</p>
       <div id="cYear"></div></div>
     <div class="grid2">
-      <div class="card"><h2>Flat-type mix by decade</h2>
-        <p class="note">Dwelling units by flat type and decade of completion. Rental flats are
-        a tenure rather than a type — HDB counts them in total dwelling units but leaves them out of
-        the sold flat-type breakdown, so they are shown as their own segment here.</p>
+      <div class="card"><h2>${t('cMix')}</h2>
+        <p class="note">${t('cMixNote')}</p>
         <div id="cMix"></div><div class="legend" id="lMix"></div></div>
-      <div class="card"><h2>Largest planning areas</h2>
-        <p class="note">Dwelling units by URA planning area, top 15.</p>
+      <div class="card"><h2>${t('cPa')}</h2>
+        <p class="note">${t('cPaNote')}</p>
         <div id="cPa"></div></div>
     </div>
-    <div class="card" style="margin-top:16px"><h2>Resale prices</h2>
+    <div class="card" style="margin-top:16px"><h2>${t('cPrice')}</h2>
       <p class="note" id="cPriceNote"></p>
       <div id="cPrice"></div><div class="legend" id="lPrice"></div></div>
-    <div class="card" style="margin-top:16px"><h2>Upcoming MOP</h2>
-      <p class="note">Units estimated to reach their 5-year Minimum Occupation Period, by year.</p>
+    <div class="card" style="margin-top:16px"><h2>${t('cMop')}</h2>
+      <p class="note">${t('cMopNote')}</p>
       <div id="cMop"></div>
-      <div class="warn"><b>Estimate.</b> MOP runs 5 years from key collection, which HDB does not publish per block.
-      This uses year of completion + 5 as a proxy, so it can be out by a year either way. Prime and Plus flats
-      (from 2024) carry a 10-year MOP and are not separately flagged in the source data.</div></div>
-    <div class="card" style="margin-top:16px"><h2>All blocks</h2>
+      <div class="warn">${t('cMopWarn')}</div></div>
+    <div class="card" style="margin-top:16px"><h2>${t('cAll')}</h2>
       <p class="note" id="tcount"></p>
       <div class="tblwrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
       <p class="note" style="margin-top:10px" id="tnote"></p></div>
     <footer>
       <div id="tip-slot"></div>
-      <b style="color:var(--text-secondary)">Sources</b>
+      <b style="color:var(--text-secondary)">${t('srcHead')}</b>
       <table id="src"></table>
       <div style="margin-top:12px;padding:10px 12px;background:var(--surface-2);border-radius:7px">
       Contains information from <b>HDB Property Information</b> and <b>Master Plan 2019 Planning
@@ -522,9 +721,13 @@ function boot(){
     sel.innerHTML = `<option value="">${all}</option>` +
       list.map(v => `<option>${v}</option>`).join('');
   };
-  opt(fr, uniq(b => b.region), 'All regions');
-  opt(ft, uniq(b => b.town), 'All towns');
-  opt(fp, uniq(b => b.pa), 'All planning areas');
+  const optL = (sel, list, all, map) => {
+    sel.innerHTML = `<option value="">${all}</option>` +
+      list.map(v => `<option value="${v}">${map ? map(v) : v}</option>`).join('');
+  };
+  optL(fr, uniq(b => b.region), t('fRegionAll'), zhRegion);
+  optL(ft, uniq(b => b.town), t('fTownAll'), zhTown);
+  optL(fp, uniq(b => b.pa), t('fPaAll'), zhPa);
   applyYears(F.y0, F.y1);
 
   fr.onchange = e => { F.region = e.target.value; render(); };
@@ -535,7 +738,7 @@ function boot(){
   $('#fy1').oninput = () => onYear(1);
   $('#fn0').onchange = onYearNum;
   $('#fn1').onchange = onYearNum;
-  let t; $('#fq').oninput = e => { clearTimeout(t); t = setTimeout(() => { F.q = e.target.value.trim().toLowerCase(); render(); }, 160); };
+  let deb; $('#fq').oninput = e => { clearTimeout(deb); deb = setTimeout(() => { F.q = e.target.value.trim().toLowerCase(); render(); }, 160); };
   $('#freset').onclick = () => {
     F = {region:'', town:'', pa:'', y0:m.year_min, y1:m.year_max, q:'', utype:''};
     fr.value = ft.value = fp.value = $('#fu').value = ''; $('#fq').value = '';
@@ -572,7 +775,7 @@ function boot(){
     $('#tip-slot').innerHTML =
       `<a class="tipjar" href="${tip}" target="_blank" rel="noopener noreferrer">
          <span class="cup">&#9749;</span>
-         <span>${label}<br><span class="sub">This report is free — a tip keeps it updated.</span></span>
+         <span>${LANG === 'zh' ? t('tipCoffee') : label}<br><span class="sub">${t('tipSub')}</span></span>
        </a>`;
   }
 
@@ -655,13 +858,13 @@ function tiles(rows){
   const yrs = rows.map(b => b.top);
   const med = arr => { if (!arr.length) return 0; const s = [...arr].sort((a,b)=>a-b); return s[Math.floor(s.length/2)]; };
   const rent = rows.reduce((a,b) => a + b.urent, 0);
-  const t = [
-    ['Blocks', fmt(rows.length), DB.meta.blocks === rows.length ? 'all residential blocks'
-      : (F.utype ? 'containing ' : 'of ') + (F.utype ? (TYPES.find(t=>t.k===F.utype)||{}).lbl + ' flats' : fmt(DB.meta.blocks) + ' total')],
-    [uLabel(), fmt(units), rows.length ? `avg ${Math.round(units/rows.length)} per block` : ''],
-    ['Median TOP year', yrs.length ? med(yrs) : '—', yrs.length ? `${DB.meta.this_year - med(yrs)} years old` : ''],
-    ['Planning areas', new Set(rows.map(b=>b.pa).filter(Boolean)).size, `${new Set(rows.map(b=>b.town)).size} HDB towns`],
-    ['Rental units', fmt(rent), units ? `${(rent/units*100).toFixed(1)}% of stock` : ''],
+  const tl = [
+    [t('tBlocks'), fmt(rows.length), DB.meta.blocks === rows.length ? t('tAllBlocks')
+      : (F.utype ? t('tContaining', {t: zhType(F.utype)}) : t('tOfTotal', {n: fmt(DB.meta.blocks)}))],
+    [uLabel(), fmt(units), rows.length ? t('tAvgPer', {n: Math.round(units/rows.length)}) : ''],
+    [t('tMedTop'), yrs.length ? med(yrs) : '—', yrs.length ? t('tYearsOld', {n: DB.meta.this_year - med(yrs)}) : ''],
+    [t('tPa'), new Set(rows.map(b=>b.pa).filter(Boolean)).size, t('tTowns', {n: new Set(rows.map(b=>b.town)).size})],
+    [t('tRental'), fmt(rent), units ? t('tOfStock', {p: (rent/units*100).toFixed(1)}) : ''],
   ];
   // last-12-month prices, weighted by how many flats actually changed hands
   const recent = [];
@@ -672,9 +875,9 @@ function tiles(rows){
   });
   const mp = wMedian(recent);
   const sold = recent.reduce((a, x) => a + x[1], 0);
-  t.push(['Median resale (LTM)', mp ? sgd(mp) : '—',
-          sold ? `${fmt(sold)} sold in 12m to ${(DB.resaleMeta||{}).latest_month || ''}` : 'no sales in 12m']);
-  $('#tiles').innerHTML = t.map(x =>
+  tl.push([t('tResale'), mp ? sgd(mp) : '—',
+          sold ? t('tSold12', {n: fmt(sold), m: (DB.resaleMeta||{}).latest_month || ''}) : t('tNoRecent')]);
+  $('#tiles').innerHTML = tl.map(x =>
     `<div class="tile"><div class="k">${x[0]}</div><div class="v">${x[1]}</div><div class="s">${x[2]}</div></div>`).join('');
 }
 
@@ -721,7 +924,7 @@ async function loadRail(){
    the three layers apart. Hue then distinguishes school level, which matters because
    the 1 km / 2 km home-to-school priority in P1 registration applies to primary
    schools only. */
-const SCH_LVL = [['P','Primary','--sch-p'], ['S','Secondary','--sch-s'], ['J','Junior College','--sch-j']];
+const SCH_LVL = [['P','schPrimary','--sch-p'], ['S','schSecondary','--sch-s'], ['J','schJC','--sch-j']];
 
 function squareIcon(fill, ring){
   const S = 16, c = document.createElement('canvas');
@@ -937,9 +1140,9 @@ function priceOf(a){
 const sgd = k => 'S$' + (k >= 1000 ? (k/1000).toFixed(2).replace(/\.?0+$/,'') + 'M' : k + 'k');
 function monthLabel(i){
   const base = (DB.resaleMeta || {}).base_month || '2017-01';
-  const t = (+base.slice(0,4)) * 12 + (+base.slice(5,7)) - 1 + i;
-  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t % 12]
-       + ' ' + Math.floor(t / 12);
+  const mi = (+base.slice(0,4)) * 12 + (+base.slice(5,7)) - 1 + i;
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mi % 12]
+       + ' ' + Math.floor(mi / 12);
 }
 /* Weighted median: prices are skewed, so a mean would be pulled by the top end. */
 function wMedian(pairs){
@@ -976,10 +1179,10 @@ function pgUrl(q){
   return u;
 }
 
-const tipHtml = p => `<b>${p.a}</b>${p.pj ? `<br><span style="color:var(--accent);font-weight:600">${p.pj}</span>` : ''}<br><span class="d">${p.t} · ${p.pa}<br>
+const tipHtml = p => `<b>${p.a}</b>${p.pj ? `<br><span style="color:var(--accent);font-weight:600">${p.pj}</span>` : ''}<br><span class="d">${zhTown(p.t)} · ${zhPa(p.pa)}<br>
   ${fmt(p.u)} units · ${p.f} storeys<br>TOP ${p.top} · MOP est. ${p.mop}
   ${p.po ? '<br>Singapore ' + p.po : ''}
-  <br><span style="color:var(--accent)">Click for full history</span></span>`;
+  <br><span style="color:var(--accent)">${t('clickHint')}</span></span>`;
 
 function wireMapHover(){
   MAP.on('mousemove', 'blocks-dots', e => {
@@ -990,7 +1193,7 @@ function wireMapHover(){
   MAP.on('mousemove', 'sch-dot', e => {
     MAP.getCanvas().style.cursor = 'pointer';
     const p = e.features[0].properties;
-    const lvl = (SCH_LVL.find(x => x[0] === p.l) || [,'School'])[1];
+    const lvl = t((SCH_LVL.find(x => x[0] === p.l) || [, 'fSchools'])[1]);
     showTip(e.originalEvent, `<b>${p.n}</b><br><span class="d">${lvl}${p.g ? ' · ' + p.g : ''}<br>${p.t}</span>`);
   });
   MAP.on('mouseleave', 'sch-dot', () => { MAP.getCanvas().style.cursor = ''; hideTip(); });
@@ -1042,7 +1245,7 @@ function drawMap(rows){
 /* No token or no network: plot the same coordinates as a plain SVG scatter. */
 function drawMapSvg(pts, host){
   host.innerHTML = '';
-  if (!pts.length){ host.innerHTML = '<p class="note">No geocoded blocks in this selection.</p>'; return; }
+  if (!pts.length){ host.innerHTML = `<p class="note">${t('noGeo')}</p>`; return; }
   const W = 900, H = 520, P = 10;
   const la = pts.map(p => p.lat), lo = pts.map(p => p.lon);
   const la0 = Math.min(...la), la1 = Math.max(...la), lo0 = Math.min(...lo), lo1 = Math.max(...lo);
@@ -1075,13 +1278,13 @@ function mapLegend(pts){
   const counts = {};
   pts.forEach(p => counts[p.dec.k] = (counts[p.dec.k] || 0) + uOf(p));
   $('#maplegend').innerHTML =
-    `<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">Completed</div>` +
+    `<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">${t('lgCompleted')}</div>` +
     DECADES.map(d => `<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:12px">
       <span style="width:11px;height:11px;border-radius:3px;background:${ORD(d.o)};flex:none"></span>
-      <span style="color:var(--text-secondary)">${d.lbl}</span>
+      <span style="color:var(--text-secondary)">${zhEra(d.k)}</span>
       <span style="margin-left:auto;color:var(--text-muted);font-variant-numeric:tabular-nums">${fmt(counts[d.k]||0)}</span>
     </div>`).join('') +
-    `<div style="margin-top:12px;font-size:11px;color:var(--text-muted);line-height:1.5">Dot area ∝ dwelling units. Hover for detail, click for listings; scroll to zoom.</div>`
+    `<div style="margin-top:12px;font-size:11px;color:var(--text-muted);line-height:1.5">${t('lgDotNote')}</div>`
     + railLegend();
 }
 
@@ -1097,16 +1300,14 @@ function schoolLegend(){
   const c = {};
   SCH.features.forEach(f => c[f.properties.l] = (c[f.properties.l] || 0) + 1);
   return `<div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--border)">
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">MOE schools</div>`
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">${t('lgSchools')}</div>`
     + SCH_LVL.map(([k, lbl, v]) => `<div class="railkey">
         <span style="width:9px;height:9px;background:var(${v});flex:none;display:inline-block;
               border:1.5px solid var(--surface-1)"></span>
-        <span style="color:var(--text-secondary)">${lbl}</span>
+        <span style="color:var(--text-secondary)">${t(lbl)}</span>
         <span style="margin-left:auto;color:var(--text-muted);font-variant-numeric:tabular-nums">${c[k] || 0}</span>
       </div>`).join('')
-    + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">Squares, to keep them
-       apart from blocks and stations. The 1 km / 2 km registration priority applies to primary schools only.
-       Names appear as you zoom in.</div></div>`;
+    + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">${t('lgSchNote')}</div></div>`;
 }
 
 function railLegend(){
@@ -1122,20 +1323,18 @@ function railLegend(){
     rows.push({c:p.colour, lbl: p.lrt ? 'LRT networks' : p.name, b:p.building});
   });
   return `<div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--border)">
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">Rail</div>`
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">${t('lgRail')}</div>`
     + rows.map(r => `<div class="railkey"><i style="background:${r.c}${r.b ? ';opacity:.55' : ''}"></i>
-        <span style="color:var(--text-secondary)">${r.lbl}${r.b ? ' <span style="color:var(--text-muted)">(building)</span>' : ''}</span></div>`).join('')
+        <span style="color:var(--text-secondary)">${r.lbl}${r.b ? ` <span style="color:var(--text-muted)">(${t('lgBuilding')})</span>` : ''}</span></div>`).join('')
     + (SHOW_STN && STN && STN.features.length
         ? `<div class="railkey" style="margin-top:8px"><span style="width:9px;height:9px;border-radius:50%;
              border:1.8px solid var(--text-secondary);background:var(--surface-1);flex:none;display:inline-block"></span>
-           <span style="color:var(--text-secondary)">Interchange</span></div>
+           <span style="color:var(--text-secondary)">${t('lgInterchange')}</span></div>
            <div class="railkey"><span style="width:7px;height:7px;border-radius:50%;
              border:1.6px solid var(--series-1);background:var(--surface-1);flex:none;display:inline-block"></span>
-           <span style="color:var(--text-secondary)">Station</span></div>` : '')
+           <span style="color:var(--text-secondary)">${t('lgStation')}</span></div>` : '')
     + schoolLegend()
-    + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">Dashed lines and faint
-       stations are under construction. Station names appear as you zoom in.
-       Geometry © OpenStreetMap contributors.</div></div>`;
+    + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">${t('lgRailNote')}</div></div>`;
 }
 
 /* ---------- shared axis frame ---------- */
@@ -1169,10 +1368,10 @@ function priceChart(rows){
   const d = [...byYear.entries()].sort((a, b) => a[0] - b[0])
     .map(([yr, ps]) => [yr, wMedian(ps), ps.reduce((a, x) => a + x[1], 0)])
     .filter(x => x[1]);
-  const label = F.utype ? (TYPES.find(t => t.k === F.utype) || {}).lbl : 'all flat types';
-  $('#cPriceNote').textContent =
-    `Median resale price by year of sale, ${label}, for the estates in the current selection. ` +
-    `${fmt((DB.resaleMeta||{}).transactions || 0)} transactions, ${(DB.resaleMeta||{}).base_month} to ${(DB.resaleMeta||{}).latest_month}.`;
+  const label = F.utype ? zhType(F.utype) : t('allTypes');
+  $('#cPriceNote').textContent = t('priceNoteA', {t: label}) + ' ' +
+    t('priceNoteB', {n: fmt((DB.resaleMeta||{}).transactions || 0),
+                     a: (DB.resaleMeta||{}).base_month, b: (DB.resaleMeta||{}).latest_month});
   if (!d.length){ host.innerHTML = '<p class="note">No transactions match this selection.</p>'; return; }
   const W = 900, H = 250, M = {t:12, r:8, b:30, l:56};
   const ymax = niceMax(Math.max(...d.map(x => x[1])));
@@ -1193,11 +1392,10 @@ function priceChart(rows){
       el('text', {x:(x+bw/2).toFixed(1), y:(H - M.b - h - 6).toFixed(1), class:'tick',
                   'text-anchor':'middle', style:'font-weight:620'}, s).textContent = sgd(medK);
   });
-  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = 'Median resale price';
+  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = t('axPrice');
   host.appendChild(s);
   $('#lPrice').innerHTML =
-    `<span style="font-size:11px;color:var(--text-muted)">Aggregated from HDB town medians, weighted by transaction count. ` +
-    `2026 is a partial year.</span>`;
+    `<span style="font-size:11px;color:var(--text-muted)">${t('priceLegend')}</span>`;
 }
 
 /* ---------- units completed per year ---------- */
@@ -1206,7 +1404,7 @@ function yearChart(rows){
   const by = new Map();
   rows.forEach(b => by.set(b.top, (by.get(b.top) || 0) + uOf(b)));
   const years = [...by.keys()].sort((a,b) => a-b);
-  if (!years.length){ host.innerHTML = '<p class="note">Nothing in this selection.</p>'; return; }
+  if (!years.length){ host.innerHTML = `<p class="note">${t('noSel')}</p>`; return; }
   const y0 = years[0], y1 = years[years.length-1];
   const all = []; for (let y = y0; y <= y1; y++) all.push([y, by.get(y) || 0]);
   const W = 900, H = 260, M = {t:12, r:8, b:30, l:48};
@@ -1229,21 +1427,21 @@ function yearChart(rows){
     if (y % step === 0)
       el('text', {x:(x+bw/2).toFixed(1), y:H - M.b + 15, class:'tick', 'text-anchor':'middle'}, s).textContent = y;
   });
-  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = 'Dwelling units';
+  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = t('axUnits');
   host.appendChild(s);
 }
 
 /* ---------- flat mix by decade (stacked) ---------- */
 function mixChart(rows){
   const host = $('#cMix'); host.innerHTML = '';
-  const types = F.utype ? TYPES.filter(t => t.k === F.utype) : TYPES;
+  const types = F.utype ? TYPES.filter(x => x.k === F.utype) : TYPES;
   const data = DECADES.map(d => {
-    const o = {lbl:d.lbl, tot:0};
-    types.forEach(t => o[t.k] = 0);
-    rows.filter(b => b.dec.k === d.k).forEach(b => types.forEach(t => { o[t.k] += b[t.k]; o.tot += b[t.k]; }));
+    const o = {lbl:zhEra(d.k), tot:0};
+    types.forEach(x => o[x.k] = 0);
+    rows.filter(b => b.dec.k === d.k).forEach(b => types.forEach(x => { o[x.k] += b[x.k]; o.tot += b[x.k]; }));
     return o;
   }).filter(d => d.tot > 0);
-  if (!data.length){ host.innerHTML = '<p class="note">Nothing in this selection.</p>'; return; }
+  if (!data.length){ host.innerHTML = `<p class="note">${t('noSel')}</p>`; return; }
   const W = 560, H = 300, M = {t:12, r:8, b:44, l:48};
   const ymax = niceMax(Math.max(...data.map(d => d.tot)));
   const s = svgRoot(W, H);
@@ -1253,25 +1451,25 @@ function mixChart(rows){
   data.forEach((d, i) => {
     const x = M.l + i*step + (step - bw)/2;
     let acc = 0;
-    types.forEach(t => {
-      const v = d[t.k]; if (!v) return;
+    types.forEach(ty => {
+      const v = d[ty.k]; if (!v) return;
       const h = v/ymax*ph, yTop = H - M.b - (acc + v)/ymax*ph;
       acc += v;
       // 2px surface gap between stacked segments, never a border
       const p = el('rect', {x, y:yTop.toFixed(1), width:bw, height:Math.max(0.5, h-2).toFixed(1),
-        fill:SER(t.s), rx:1.5}, s);
+        fill:SER(ty.s), rx:1.5}, s);
       p.addEventListener('mouseenter', e => showTip(e,
-        `<b>${t.lbl}</b> · ${d.lbl}<br><span class="d">${fmt(v)} units · ${(v/d.tot*100).toFixed(1)}% of decade</span>`));
+        `<b>${zhType(ty.k)}</b> · ${d.lbl}<br><span class="d">${fmt(v)} units · ${(v/d.tot*100).toFixed(1)}% of decade</span>`));
       p.addEventListener('mousemove', e => showTip(e, tip.innerHTML));
       p.addEventListener('mouseleave', hideTip);
     });
     el('text', {x:(x+bw/2).toFixed(1), y:H - M.b + 16, class:'tick', 'text-anchor':'end',
       transform:`rotate(-35 ${(x+bw/2).toFixed(1)} ${H-M.b+16})`}, s).textContent = d.lbl;
   });
-  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = 'Dwelling units';
+  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = t('axUnits');
   host.appendChild(s);
-  $('#lMix').innerHTML = types.map(t =>
-    `<span class="it"><span class="sw" style="background:${SER(t.s)}"></span>${t.lbl}</span>`).join('');
+  $('#lMix').innerHTML = types.map(x =>
+    `<span class="it"><span class="sw" style="background:${SER(x.s)}"></span>${zhType(x.k)}</span>`).join('');
 }
 
 /* ---------- planning areas ---------- */
@@ -1280,14 +1478,14 @@ function paChart(rows){
   const by = new Map();
   rows.forEach(b => { if (b.pa) by.set(b.pa, (by.get(b.pa)||0) + uOf(b)); });
   const d = [...by.entries()].sort((a,b) => b[1]-a[1]).slice(0, 15);
-  if (!d.length){ host.innerHTML = '<p class="note">Nothing in this selection.</p>'; return; }
+  if (!d.length){ host.innerHTML = `<p class="note">${t('noSel')}</p>`; return; }
   const rowH = 19, W = 560, M = {t:8, r:58, b:8, l:112};
   const H = M.t + M.b + d.length*rowH;
   const s = svgRoot(W, H);
   const max = d[0][1], iw = W - M.l - M.r;
   d.forEach(([name, v], i) => {
     const y = M.t + i*rowH;
-    el('text', {x:M.l - 9, y:y + rowH/2 + 3.5, class:'tick', 'text-anchor':'end'}, s).textContent = name;
+    el('text', {x:M.l - 9, y:y + rowH/2 + 3.5, class:'tick', 'text-anchor':'end'}, s).textContent = zhPa(name);
     const w = Math.max(1, v/max*iw);
     const p = el('path', {d:hbarPath(M.l, y+3, w, rowH-8, 2), fill:SER(1)}, s);
     p.addEventListener('mouseenter', e => showTip(e,
@@ -1323,15 +1521,15 @@ function mopChart(rows){
     p.addEventListener('mouseleave', hideTip);
     el('text', {x:(x+bw/2).toFixed(1), y:H - M.b + 15, class:'tick', 'text-anchor':'middle'}, s).textContent = y;
   });
-  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = 'Dwelling units';
+  el('text', {x:M.l, y:10, class:'axlabel'}, s).textContent = t('axUnits');
   host.appendChild(s);
 }
 
 /* ---------- estate summary ---------- */
 const ECOLS = [
-  ['town','Estate','t'], ['blocks','Blocks','n'], ['units','Units','n'],
-  ['span','TOP range','t'], ['age','Median age','n'], ['pa','Main planning area','t'],
-  ['region','Region','t'], ['mopUp','Units still in MOP','n'],
+  ['town','fTown','t'], ['blocks','eBlocks','n'], ['units','eUnits','n'],
+  ['span','eSpan','t'], ['age','eAge','n'], ['pa','ePa','t'],
+  ['region','colRegion','t'], ['mopUp','eMopUp','n'],
 ];
 let eSort = 'units', eDir = -1;
 
@@ -1347,8 +1545,8 @@ function estateAgg(rows){
   });
   const top1 = o => { const k = Object.keys(o); return k.length ? k.reduce((a,b)=>o[a]>=o[b]?a:b) : ''; };
   return [...by.values()].map(e => {
-    const t = e.tops.sort((a,b)=>a-b);
-    const med = t[Math.floor(t.length/2)];
+    const ts = e.tops.sort((a,b)=>a-b);
+    const med = ts[Math.floor(ts.length/2)];
     return {...e, span:`${t[0]}–${t[t.length-1]}`, age: DB.meta.this_year - med,
             pa: top1(e.pa), region: top1(e.region)};
   });
@@ -1360,7 +1558,7 @@ function estateTable(rows){
     return (typeof x === 'string' ? x.localeCompare(y) : x - y) * eDir;
   });
   $('#ethead').innerHTML = '<tr>' + ECOLS.map(c =>
-    `<th data-k="${c[0]}" class="${c[2]==='t'?'':'num'}">${c[1]}${eSort===c[0]?` <span class="ar">${eDir>0?'▲':'▼'}</span>`:''}</th>`).join('') + '</tr>';
+    `<th data-k="${c[0]}" class="${c[2]==='t'?'':'num'}">${t(c[1])}${eSort===c[0]?` <span class="ar">${eDir>0?'▲':'▼'}</span>`:''}</th>`).join('') + '</tr>';
   $('#ethead').querySelectorAll('th').forEach(th => th.onclick = () => {
     const k = th.dataset.k;
     if (eSort === k) eDir *= -1;
@@ -1369,12 +1567,15 @@ function estateTable(rows){
   });
   $('#etbody').innerHTML = d.map(e => `<tr data-town="${e.town}" style="cursor:pointer">` +
     ECOLS.map(c => {
-      const v = e[c[0]];
+      let v = e[c[0]];
+      if (c[0] === 'town') v = zhTown(v);
+      if (c[0] === 'region') v = zhRegion(v);
+      if (c[0] === 'pa') v = zhPa(v);
       return `<td class="${c[2]==='t'?'':'num'}">${c[2]==='n'?fmt(v):(v||'—')}</td>`;
     }).join('') + '</tr>').join('');
   $('#etbody').querySelectorAll('tr').forEach(tr => tr.onclick = () => {
-    const t = tr.dataset.town;
-    F.town = F.town === t ? '' : t;
+    const tw = tr.dataset.town;
+    F.town = F.town === tw ? '' : tw;
     $('#ft').value = F.town;
     render();
     document.querySelector('.filters').scrollIntoView({behavior:'smooth', block:'nearest'});
@@ -1387,6 +1588,8 @@ function estateTable(rows){
 const TXC = {};
 const TXLBL = {'1':'1-room','2':'2-room','3':'3-room','4':'4-room','5':'5-room',
                'E':'Executive','M':'Multi-gen'};
+const TXKEY = {'1':'u1','2':'u2','3':'u3','4':'u4','5':'u5','E':'uex','M':'uoth'};
+const txLabel = c => LANG === 'zh' ? zhType(TXKEY[c] || c) : (TXLBL[c] || c);
 const slugify = v => v.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
 async function txFor(street){
@@ -1401,8 +1604,8 @@ async function txFor(street){
 }
 
 function mLabel(i){
-  const t = 2017*12 + i;
-  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t%12] + ' ' + Math.floor(t/12);
+  const mi = 2017*12 + i;
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mi%12] + ' ' + Math.floor(mi/12);
 }
 const psfOf = (price100, sqm) => (price100*100)/(sqm*10.763910417);
 
@@ -1423,7 +1626,7 @@ async function openPanel(blk, street, filterType){
   $('#pproj').textContent = b.project || '';
   $('#pproj').style.display = b.project ? '' : 'none';
   $('#pmeta').innerHTML = panelMeta(b, null);
-  $('#pbody').innerHTML = '<p class="pnote">Loading transactions…</p>';
+  $('#pbody').innerHTML = `<p class="pnote">${t('pLoading')}</p>`;
   const data = await txFor(b.street);
   if (PANEL_BLOCK !== b) return;                    // a newer open superseded this one
   const rec = (data || {})[b.blk.toUpperCase()];
@@ -1438,16 +1641,15 @@ function panelMeta(b, rec){
   const left = rec && rec.lc ? 99 - (DB.meta.this_year - rec.lc)
                              : 99 - (DB.meta.this_year - b.top);
   const exact = rec && rec.lc;
-  return `${b.town} · ${b.pa || '—'}<br>${fmt(b.units)} units · ${b.floors} storeys
-    · TOP ${b.top} · MOP est. ${b.mop}<br>${exact ? '' : '~'}${left} years lease remaining${exact ? ` (from ${rec.lc})` : ''}` +
+  return `${zhTown(b.town)} · ${zhPa(b.pa) || '—'}<br>${fmt(b.units)} ${t('pUnits')} · ${b.floors} ${t('pStoreysW')}
+    · TOP ${b.top} · ${t('colMop')} ${b.mop}<br>${exact ? '' : '~'}${left} ${t('pLeaseLeft')}${exact ? ` (${rec.lc} ${t('pFrom')})` : ''}` +
     (b.postal ? ' · Singapore ' + b.postal : '');
 }
 
 function renderPanel(b, rec){
   const host = $('#pbody');
   if (!rec || !rec.t || !rec.t.length){
-    host.innerHTML = `<p class="pnote">No resale transactions recorded since 2017 for this block —
-      typically a newer block still within its MOP, or rental-only.</p>` + listingLinks(b);
+    host.innerHTML = `<p class="pnote">${t('pNoTx')}</p>` + listingLinks(b);
     return;
   }
   let rows = rec.t.map(([m, code, storey, sqm, p100]) => ({
@@ -1474,42 +1676,38 @@ function renderPanel(b, rec){
     const all = v.map(r => r.price).sort((x,y)=>x-y);
     const med = a => a.length ? (a.length%2 ? a[(a.length-1)/2] : (a[a.length/2-1]+a[a.length/2])/2) : null;
     const last = Math.max(...v.map(r => r.m));
-    return `<tr class="${ltm.length<2?'thin':''}"><td>${TXLBL[code]||code}</td><td class="n">${sqm}</td>
+    return `<tr class="${ltm.length<2?'thin':''}"><td>${txLabel(code)}</td><td class="n">${sqm}</td>
       <td class="n">${v.length}</td><td class="n">${sgd(Math.round(med(all)/1000))}</td>
       <td class="n">${ltm.length ? sgd(Math.round(med(ltm)/1000)) : '—'}</td>
       <td class="n">${ltm.length || '—'}</td><td>${mLabel(last)}</td></tr>`;
   }).join('');
 
   const filt = `<div style="margin:2px 0 10px">
-    <button class="sbtn ${PANEL_FILTER?'':'on'}" data-t="">All types</button>` +
-    types.map(t => `<button class="sbtn ${PANEL_FILTER===t?'on':''}" data-t="${t}">${TXLBL[t]||t}</button>`).join('') +
+    <button class="sbtn ${PANEL_FILTER?'':'on'}" data-t="">${t('pAllTypes')}</button>` +
+    types.map(c => `<button class="sbtn ${PANEL_FILTER===c?'on':''}" data-t="${c}">${txLabel(c)}</button>`).join('') +
     `</div>`;
 
   const body = [...shown].sort((a,b2) => b2.m - a.m).map(r =>
-    `<tr><td>${mLabel(r.m)}</td><td>${TXLBL[r.code]||r.code}</td>
+    `<tr><td>${mLabel(r.m)}</td><td>${txLabel(r.code)}</td>
      <td class="n">${r.storey}–${r.storey+2}</td><td class="n">${r.sqm}</td>
      <td class="n">${fmt(r.price)}</td><td class="n">${Math.round(r.psf)}</td>
      <td class="n">${r.lease}y</td></tr>`).join('');
 
   host.innerHTML =
-    `<h4>Summary by flat type and size</h4>
-     <div class="ptabwrap"><table class="ptab"><thead><tr><th>Type</th><th class="n">sqm</th><th class="n">Sales</th>
-       <th class="n">Median all</th><th class="n">Median LTM</th><th class="n">n LTM</th><th>Last sale</th></tr></thead>
+    `<h4>${t('pSummary')}</h4>
+     <div class="ptabwrap"><table class="ptab"><thead><tr><th>${t('pType')}</th><th class="n">${t('pSqm')}</th><th class="n">${t('pSales')}</th>
+       <th class="n">${t('pMedAll')}</th><th class="n">${t('pMedLtm')}</th><th class="n">${t('pNLtm')}</th><th>${t('pLast')}</th></tr></thead>
        <tbody>${gRows}</tbody></table></div>
-     <p class="pnote">Split by floor area as well as flat type — one block can hold two
-       layouts under the same name, and a blended median describes neither. Muted rows have
-       fewer than two sales in the last twelve months.</p>
-     <h4>All transactions <span class="pill">${shown.length} of ${rows.length}</span></h4>
+     <p class="pnote">${t('pSplitNote')}</p>
+     <h4>${t('pAllTx')} <span class="pill">${shown.length} / ${rows.length}</span></h4>
      ${filt}
      ${priceScatter(shown)}
-     <div class="ptabwrap"><table class="ptab"><thead><tr><th>Month</th><th>Type</th><th class="n">Storey</th>
-       <th class="n">sqm</th><th class="n">Price</th><th class="n">psf</th><th class="n">Lease</th></tr></thead>
+     <div class="ptabwrap"><table class="ptab"><thead><tr><th>${t('pMonth')}</th><th>${t('pType')}</th><th class="n">${t('pStorey')}</th>
+       <th class="n">${t('pSqm')}</th><th class="n">${t('pPrice')}</th><th class="n">${t('pPsf')}</th><th class="n">${t('pLease')}</th></tr></thead>
        <tbody>${body}</tbody></table></div>
-     <p class="pnote">HDB publishes a three-storey band and no unit number, so a specific flat
-       cannot be tracked across sales — two rows in the same band and size may or may not be the
-       same home. Prices are as registered with HDB.</p>
+     <p class="pnote">${t('pUnitNote')}</p>
      ${listingLinks(b)}
-     <p class="txlink"><a class="plink" href="#" id="ptxcsv">Download these transactions (CSV)</a></p>`;
+     <p class="txlink"><a class="plink" href="#" id="ptxcsv">${t('pTxCsv')}</a></p>`;
 
   host.querySelectorAll('.sbtn').forEach(btn => btn.onclick = () => {
     PANEL_FILTER = btn.dataset.t; renderPanel(b, rec);
@@ -1521,14 +1719,12 @@ function renderPanel(b, rec){
    street searches are the fallbacks. Carried over from the popup this replaced. */
 function listingLinks(b){
   const street = b.streetFull || b.street;
-  const out = [[`Listings in block ${b.blk}`, `${b.blk} ${street}`]];
-  if (b.project) out.push([`Listings in ${b.project}`, b.project]);
-  out.push([`Listings on ${street}`, street]);
-  return `<h4>Live listings</h4><div class="pglinks" style="border:0;padding:0;margin:0">`
+  const out = [[t('pgBlock', {b: b.blk}), `${b.blk} ${street}`]];
+  if (b.project) out.push([t('pgProject', {p: b.project}), b.project]);
+  out.push([t('pgStreet', {s: street}), street]);
+  return `<h4>${t('pListings')}</h4><div class="pglinks" style="border:0;padding:0;margin:0">`
     + out.map(([lbl, q]) => `<a href="${pgUrl(q)}" target="_blank" rel="noopener noreferrer">${lbl} &#8599;</a>`).join('')
-    + `</div><p class="pnote">PropertyGuru searches, opening in a new tab${F.utype
-        ? `, filtered to ${(TYPES.find(t => t.k === F.utype) || {}).lbl}` : ''}. A single block
-        often has no active listing — the project and street searches are the fallbacks.</p>`;
+    + `</div><p class="pnote">${t('pgNote')}${F.utype ? t('pgFiltered', {t: zhType(F.utype)}) : ''}</p>`;
 }
 
 /* psf over time, coloured by storey band — storey is the biggest in-block price driver */
@@ -1586,11 +1782,11 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && PANEL_BLOCK) closeP
 
 /* ---------- table ---------- */
 const COLS = [
-  ['addr','Block','t'], ['town','HDB town','t'], ['pa','URA planning area','t'],
-  ['region','Region','t'], ['units','Units','n'], ['floors','Storeys','n'],
-  ['top','TOP','y'], ['mop','MOP est.','y'], ['price','Resale (LTM)','n'],
-  ['lat','Lat','n'], ['lon','Lon','n'],
-  ['postal','Postal','t'],
+  ['addr','colBlock','t'], ['town','colTown','t'], ['pa','colPa','t'],
+  ['region','colRegion','t'], ['units','colUnits','n'], ['floors','colStoreys','n'],
+  ['top','colTop','y'], ['mop','colMop','y'], ['price','colResale','n'],
+  ['lat','colLat','n'], ['lon','colLon','n'],
+  ['postal','colPostal','t'],
 ];
 function table(rows){
   const sorted = [...rows].sort((a,b) => {
@@ -1601,7 +1797,7 @@ function table(rows){
   });
   const show = sorted.slice(0, 500);
   $('#thead').innerHTML = '<tr>' + COLS.map(c =>
-    `<th data-k="${c[0]}" class="${c[2]==='t'?'':'num'}">${c[1]}${sortKey===c[0]?` <span class="ar">${sortDir>0?'▲':'▼'}</span>`:''}</th>`).join('') + '</tr>';
+    `<th data-k="${c[0]}" class="${c[2]==='t'?'':'num'}">${t(c[1])}${sortKey===c[0]?` <span class="ar">${sortDir>0?'▲':'▼'}</span>`:''}</th>`).join('') + '</tr>';
   $('#thead').querySelectorAll('th').forEach(th => th.onclick = () => {
     const k = th.dataset.k;
     if (sortKey === k) sortDir *= -1;
@@ -1614,15 +1810,18 @@ function table(rows){
     if (c[0] === 'lat' || c[0] === 'lon') v = v == null ? '—' : v.toFixed(5);
     else if (c[2] === 'y') v = String(v);          // years carry no thousands separator
     else if (c[2] === 'n') v = fmt(v);
+    if (c[0] === 'town') v = zhTown(v);
+    if (c[0] === 'region') v = zhRegion(v);
+    if (c[0] === 'pa') v = zhPa(v);
     return `<td class="${c[2]==='t'?'':'num'}">${v === '' || v == null ? '—' : v}</td>`;
   }).join('') + '</tr>').join('');
   $('#tbody').querySelectorAll('tr').forEach(tr => tr.onclick = () => {
     location.hash = 'b=' + encodeURIComponent(tr.dataset.b + '|' + tr.dataset.s);
   });
   $('#tbody').querySelectorAll('tr').forEach(tr => tr.style.cursor = 'pointer');
-  $('#tcount').textContent = `${fmt(rows.length)} blocks match the current filters` +
-    (rows.length > 500 ? ' — showing the first 500, sorted. Download the CSV for the full set.' : '.');
-  $('#tnote').textContent = 'Click a column header to sort, or a row to open its transaction history.';
+  $('#tcount').textContent = t('tblCount', {n: fmt(rows.length)}) +
+    (rows.length > 500 ? t('tblFirst') : '.');
+  $('#tnote').textContent = t('tblSort');
 }
 
 function downloadCsv(){
