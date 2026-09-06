@@ -41,9 +41,25 @@
   --accent:#3987e5; --ctrl-ink:invert(1) hue-rotate(180deg); --map-ring:#1a1a19;
 }
 *{box-sizing:border-box}
+/* Noto Sans SC, subset by build_font.py to the ~390 characters this page renders.
+   unicode-range confines it to CJK, so Latin keeps the system stack and an
+   English-only visitor never downloads it at all. */
+/* Ranges are CJK only. U+2026 (…) and curly quotes were in here at first, which made
+   an English-only page download 58 KB for an ellipsis. */
+@font-face{font-family:'Noto Sans SC Subset';font-style:normal;font-weight:400;
+  font-display:swap;src:url('vendor/NotoSansSC-400.woff2') format('woff2');
+  unicode-range:U+2E80-9FFF,U+3000-303F,U+FF00-FFEF,U+FE10-FE1F}
+@font-face{font-family:'Noto Sans SC Subset';font-style:normal;font-weight:600;
+  font-display:swap;src:url('vendor/NotoSansSC-600.woff2') format('woff2');
+  unicode-range:U+2E80-9FFF,U+3000-303F,U+FF00-FFEF,U+FE10-FE1F}
 body{margin:0;background:var(--surface-0);color:var(--text-primary);
-  font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,
-    "PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
+  /* The subset face must come FIRST. Its unicode-range confines it to CJK, so Latin
+     still falls through to the system stack — but placed later it would be skipped
+     entirely wherever an earlier family happens to cover CJK, which is most Linux
+     and Android devices. */
+  font:14px/1.5 'Noto Sans SC Subset',ui-sans-serif,system-ui,-apple-system,"Segoe UI",
+    Roboto,Helvetica,Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+    "Noto Sans CJK SC","Source Han Sans SC",sans-serif;
   -webkit-font-smoothing:antialiased}
 .wrap{max-width:1280px;margin:0 auto;padding:32px 24px 64px}
 header h1{font-size:26px;font-weight:650;letter-spacing:-.02em;margin:0 0 6px}
@@ -378,6 +394,13 @@ const EN = {
   allTypes:'all flat types', tipCoffee:'Buy me a coffee', tipSub:'This report is free — a tip keeps it updated.',
   errRender:'Something went wrong drawing the page', errLoad:'Could not load the data', theme:'theme',
   schPrimary:'Primary', schSecondary:'Secondary', schJC:'Junior College',
+  srcPub:['Housing & Development Board via data.gov.sg','Singapore Land Authority',
+          'Urban Redevelopment Authority via data.gov.sg'],
+  srcDesc:['blocks, dwelling units, flat mix, year completed (TOP)',
+           'latitude / longitude / postal code per block',
+           'URA planning area + region, assigned by point-in-polygon'],
+  derived:'Derived fields — <b>MOP</b> = year completed + 5 (estimate); <b>lease remaining</b> = 99 − (current year − year completed), an approximation since the lease commences shortly before completion; <b>planning area</b> assigned by point-in-polygon against the URA Master Plan 2019 boundaries, which is why an HDB town such as Central Area resolves to URA areas like Outram and Rochor.',
+  attrib:'Contains information from <b>HDB Property Information</b> and <b>Master Plan 2019 Planning Area Boundary</b> accessed on {d} from <a href="https://data.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">data.gov.sg</a>, and from the <b>OneMap</b> Search API accessed on {d} from <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">onemap.gov.sg</a>, which are made available under the terms of the <a href="https://www.onemap.gov.sg/legal/opendatalicence.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Singapore Open Data Licence version 1.0</a>. Rail geometry © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">OpenStreetMap</a> contributors, licensed under ODbL. Basemap © Mapbox © OpenStreetMap. This report is not endorsed by, and implies no official status with, HDB, URA or SLA.',
 };
 const ZH = {
   title:'新加坡组屋数据库',
@@ -437,6 +460,10 @@ const ZH = {
   allTypes:'全部类型', tipCoffee:'请我喝杯咖啡', tipSub:'本报告免费提供——您的赞助让它持续更新。',
   errRender:'页面渲染出错', errLoad:'数据载入失败', theme:'主题',
   schPrimary:'小学', schSecondary:'中学', schJC:'初级学院',
+  srcPub:['建屋发展局（经 data.gov.sg）','新加坡土地管理局','市区重建局（经 data.gov.sg）'],
+  srcDesc:['座数、单位数量、户型构成、落成年份（TOP）','每座的经纬度与邮区编号','规划区与区域，以点面判定法归属'],
+  derived:'衍生字段 —— <b>MOP</b> ＝ 落成年份 ＋ 5（估算）；<b>剩余地契</b> ＝ 99 −（当前年份 − 落成年份），属近似值，因地契在落成前已开始起算；<b>规划区</b>以点面判定法对照市区重建局 2019 年总蓝图边界归属，因此「中区」这类组屋市镇会落入欧南、梧槽等规划区。',
+  attrib:'本报告使用 <b>HDB Property Information</b> 与 <b>Master Plan 2019 Planning Area Boundary</b> 数据（于 {d} 取自 <a href="https://data.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">data.gov.sg</a>），以及 <b>OneMap</b> Search API 数据（于 {d} 取自 <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">onemap.gov.sg</a>），均依据 <a href="https://www.onemap.gov.sg/legal/opendatalicence.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Singapore Open Data Licence version 1.0</a> 提供。轨道线路数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">OpenStreetMap</a> 贡献者，依 ODbL 授权。底图 © Mapbox © OpenStreetMap。本报告未获建屋局、市区重建局或土地管理局认可，亦不具任何官方性质。',
 };
 /* Data values with official Chinese names. Streets, projects and school names are
    deliberately absent — they have no official Chinese form. */
@@ -507,7 +534,13 @@ const lb = $('#langbtn');
 lb.textContent = LANG === 'zh' ? 'EN' : '中文';
 lb.onclick = () => {
   setLang(LANG === 'zh' ? 'en' : 'zh', true);
-  if (DB) boot();                      // rebuild the page in the new language
+  if (!DB) return;
+  /* boot() replaces #app wholesale, which destroys the div Mapbox is mounted on.
+     The old Map instance would survive pointing at a detached node and the map
+     would simply vanish, so tear it down and let drawMap build a fresh one. */
+  if (MAP) { try { MAP.remove(); } catch (e) {} }
+  MAP = null; MAP_MODE = null; MAP_PTS = []; LAST_FIT = null; PANEL_BLOCK = null;
+  boot();
 };
 
 /* ---------- load ---------- */
@@ -698,22 +731,8 @@ function boot(){
       <div id="tip-slot"></div>
       <b style="color:var(--text-secondary)">${t('srcHead')}</b>
       <table id="src"></table>
-      <div style="margin-top:12px;padding:10px 12px;background:var(--surface-2);border-radius:7px">
-      Contains information from <b>HDB Property Information</b> and <b>Master Plan 2019 Planning
-      Area Boundary</b> accessed on 02 September 2026 from
-      <a href="https://data.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">data.gov.sg</a>,
-      and from the <b>OneMap</b> Search API accessed on 02 September 2026 from
-      <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">onemap.gov.sg</a>,
-      which are made available under the terms of the
-      <a href="https://www.onemap.gov.sg/legal/opendatalicence.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Singapore Open Data Licence version 1.0</a>.
-      Rail geometry &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">OpenStreetMap</a>
-      contributors, licensed under ODbL. Basemap &copy; Mapbox &copy; OpenStreetMap.
-      This report is not endorsed by, and implies no official status with, HDB, URA or SLA.</div>
-      <div style="margin-top:12px">Derived fields — <b>MOP</b> = year completed + 5 (estimate);
-      <b>lease remaining</b> = 99 − (current year − year completed), an approximation since the lease
-      commences shortly before completion; <b>planning area</b> assigned by point-in-polygon against the
-      URA Master Plan 2019 boundaries, which is why an HDB town such as Central Area resolves to
-      URA areas like Outram and Rochor.</div>
+      <div id="attrib" style="margin-top:12px;padding:10px 12px;background:var(--surface-2);border-radius:7px"></div>
+      <div id="derived" style="margin-top:12px"></div>
     </footer>`;
 
   const fr = $('#fr'), ft = $('#ft'), fp = $('#fp');
@@ -783,8 +802,16 @@ function boot(){
   $('#scrim').onclick = () => closePanel();
   if (location.hash) hashOpen();
 
-  $('#src').innerHTML = m.sources.map(s =>
-    `<tr><td style="color:var(--text-secondary);font-weight:600">${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td></tr>`).join('');
+  /* Licence requires an access date; the build timestamp is when the pipeline last
+     fetched the sources, so it stays correct without anyone remembering to edit it. */
+  const gen = new Date((m.generated || '').replace(' ', 'T'));
+  const acc = isNaN(gen) ? (m.generated || '') : gen.toLocaleDateString(
+    LANG === 'zh' ? 'zh-CN' : 'en-GB', {year:'numeric', month:'long', day:'numeric'});
+  $('#attrib').innerHTML = t('attrib', {d: acc});
+  $('#derived').innerHTML = t('derived');
+  $('#src').innerHTML = m.sources.map((src, i) =>
+    `<tr><td style="color:var(--text-secondary);font-weight:600">${src[0]}</td>` +
+    `<td>${(t('srcPub')[i]) || src[1]}</td><td>${(t('srcDesc')[i]) || src[2]}</td></tr>`).join('');
 
   render();
 }

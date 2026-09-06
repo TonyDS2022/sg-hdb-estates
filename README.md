@@ -115,6 +115,7 @@ build_site.py  -> site/data.json + site/config.js
 fetch_rail.py  Overpass -> site/rail.geojson, site/stations.geojson  (cached)
 build_resale.py resale.csv -> data/resale_agg.json, site/tx/
 fetch_schools.py schools.csv + OneMap -> site/schools.geojson
+build_font.py   subset Noto Sans SC to the glyphs the page renders
 validate.py    QA the assembled database (exits non-zero on failure)
 serve.py       -> http://127.0.0.1:<port>/
 ```
@@ -267,6 +268,29 @@ bands. Numbers reformat to the `zh-SG` locale.
 official Chinese form, and Singapore addresses are written in English even in Chinese-language
 media. The licence attribution also stays in English, since it is a legal notice referencing
 English licence terms.
+
+### Chinese typeface
+
+Simplified Chinese renders in **Noto Sans SC** (SIL Open Font Licence — unambiguous for a
+commercial site, unlike the custom "free for commercial use" licences on MiSans, HarmonyOS
+Sans and Alibaba PuHuiTi).
+
+A full SC face is **15 MB**, and Google Fonts' hosted copy is split into 202 unicode-range
+chunks that 391 scattered glyphs would pull down a large share of. But the Chinese text here
+is a fixed set of dictionary strings, so the exact glyph set is knowable at build time:
+`build_font.py` subsets to the ~420 characters the page actually renders, giving **58 KB per
+weight** — a 250× reduction — self-hosted, with no third-party request.
+
+Three things this needs to get right, all now enforced or verified:
+
+* **The subset face must come first in the font stack.** `unicode-range` confines it to CJK
+  so Latin still falls through to the system stack, but placed later it is skipped entirely
+  wherever an earlier family happens to cover CJK — which is most Linux and Android devices.
+* **The range must be CJK only.** `U+2026` and curly quotes were in it at first, which made an
+  English-only page download 58 KB for an ellipsis. English now fetches nothing.
+* **Adding a translation invalidates the subset.** `build_font.py` verifies every character in
+  the built page is present in the output and fails the build if not, rather than letting a
+  character silently fall back to a system font mid-sentence.
 
 ### Rail overlay
 
