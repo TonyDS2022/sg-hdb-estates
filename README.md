@@ -181,6 +181,39 @@ The trend chart aggregates HDB-town medians weighted by transaction count. Per-b
 medians were considered and rejected: at a median of ~12 sales per pair over ten years, a
 one-year bucket is often a single transaction, which is a price, not a median.
 
+### Transaction panel and how the data persists
+
+Clicking a block opens a panel with its full transaction history — every sale, split by
+flat type **and floor area**, a psf-over-time scatter coloured by storey band, and a CSV
+export. The panel is deep-linkable (`#b=18|CANTONMENT+CL`), so a block is shareable and the
+back button closes it.
+
+The 240k-row history is never shipped up front. `build_resale.py` writes `site/tx/<street>.json`
+— **580 files, ~5 MB total, median 6 KB** — fetched on demand and cached. Sharding by street
+rather than by block means 580 files instead of 9,740, and opening one block warms every
+neighbouring block on the same street, which is how these actually get compared.
+
+**Periodic refresh.** data.gov.sg serves a *full snapshot* each month, not a delta, so a
+rebuild is normally self-healing — there is no incremental state to corrupt. Three things
+would otherwise break silently, and each is now guarded:
+
+1. **Non-deterministic output.** Dict order followed CSV row order, so an upstream reshuffle
+   would rewrite all 580 files with no real change. Output is now sorted: a rebuild on
+   unchanged input is byte-identical, and a real refresh touches only what moved. Measured on
+   a live refresh of +304 transactions: **195 of 580 files changed.**
+2. **A truncated or rolled-over snapshot** silently replacing good history with less of it.
+   `data/resale_manifest.json` is committed as a high-water mark; the build refuses to run if
+   the transaction count drops more than 0.5% or the latest month goes backwards. Delete the
+   manifest to override deliberately.
+3. **HDB opening a new dataset period.** They have rolled over before (1990-1999, 2000-2012,
+   2012-2014, 2015-2016, 2017-onwards). When a "2027 onwards" dataset appears, our file simply
+   stops growing and nothing complains. `fetch_data.py` now watches the collection's child
+   datasets and warns when an unknown one appears.
+
+`data/resale.csv` (23 MB) stays git-ignored and is re-downloaded each run; the derived
+`site/tx/` files are committed, which also means git retains the history even if upstream
+ever revises or withdraws it.
+
 ### Rail overlay
 
 `fetch_rail.py` pulls MRT/LRT route relations from OpenStreetMap and writes
