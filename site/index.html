@@ -1574,7 +1574,7 @@ function estateAgg(rows){
   return [...by.values()].map(e => {
     const ts = e.tops.sort((a,b)=>a-b);
     const med = ts[Math.floor(ts.length/2)];
-    return {...e, span:`${t[0]}–${t[t.length-1]}`, age: DB.meta.this_year - med,
+    return {...e, span:`${ts[0]}–${ts[ts.length-1]}`, age: DB.meta.this_year - med,
             pa: top1(e.pa), region: top1(e.region)};
   });
 }
