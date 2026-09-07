@@ -1258,10 +1258,25 @@ function fitMap(pts){
   MAP.fitBounds(b, {padding: 44, duration: 650, maxZoom: 15.5});
 }
 
+let STYLE_OK = false, BASEMAP_DEAD = false;
+
+function basemapFailed(){
+  if (BASEMAP_DEAD || STYLE_OK) return;
+  BASEMAP_DEAD = true; HAS_BASEMAP = false;
+  console.warn('basemap unreachable — falling back to the plain scatter');
+  if (MAP) { try { MAP.remove(); } catch (e) {} }
+  MAP = null; MAP_MODE = null;
+  const host = $('#map');
+  if (host) { host.innerHTML = ''; drawMap(filtered()); }
+}
+
 function drawMap(rows){
   const host = $('#map');
   const pts = rows.filter(b => b.lat != null);
-  if (!HAS_BASEMAP){ host.classList.add('svgfallback'); drawMapSvg(pts, host); mapLegend(pts); return; }
+  if (!HAS_BASEMAP){
+    host.className = 'svgfallback';
+    drawMapSvg(pts, host); mapLegend(pts); return;
+  }
   MAP_PTS = pts;
   // refit only when the geography changes; the year slider must not re-zoom on every tick
   const mode = themeNow(), sig = JSON.stringify([F.region, F.town, F.pa, F.q]);
@@ -1270,8 +1285,17 @@ function drawMap(rows){
     MAP = new mapboxgl.Map({container: host, style: window.MAP_CONFIG.styles[mode],
       center:[103.82, 1.352], zoom:10.4, attributionControl:true});
     MAP.addControl(new mapboxgl.NavigationControl({showCompass:false}), 'top-right');
-    MAP.on('style.load', addMapLayers);   // setStyle wipes sources, so re-add every time
+    MAP.on('style.load', () => { STYLE_OK = true; addMapLayers(); });
     MAP.on('load', () => { wireMapHover(); fitMap(MAP_PTS); LAST_FIT = sig; });
+    /* Having the library and a token is not the same as having tiles. Where
+       api.mapbox.com is unreachable — a firewall, a captive portal, an outage — the
+       canvas stays blank and every block silently disappears. Watch for that and
+       drop to the dependency-free scatter, which needs no network at all. */
+    MAP.on('error', e => {
+      const msg = String((e && e.error && e.error.message) || '');
+      if (/Failed to fetch|NetworkError|Load failed|ERR_/i.test(msg)) basemapFailed();
+    });
+    setTimeout(() => { if (!STYLE_OK) basemapFailed(); }, 12000);
   } else if (mode !== MAP_MODE){
     MAP_MODE = mode;
     MAP.setStyle(window.MAP_CONFIG.styles[mode]);   // style.load re-adds with the new paint
