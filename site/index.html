@@ -347,7 +347,7 @@ const TYPES = [
    and Singapore addresses are written in English even in Chinese-language media. */
 const EN = {
   title:'Singapore HDB Estate Database',
-  sub:'Every residential HDB block in Singapore — dwelling units, year of completion (TOP), estimated MOP, geocoded coordinates and URA planning area — assembled from three official sources.',
+  sub:'Every residential HDB block in Singapore — dwelling units, year of completion (TOP), estimated MOP, geocoded coordinates and URA planning area — assembled from four official sources.',
   provBlocks:'residential blocks', provUnits:'dwelling units', provGeo:'geocoded',
   provResale:'resale to', provBuilt:'built',
   fRegion:'Region', fRegionAll:'All regions', fTown:'HDB town', fTownAll:'All towns',
@@ -417,12 +417,12 @@ const EN = {
   srcDesc:['blocks, dwelling units, flat mix, year completed (TOP)',
            'latitude / longitude / postal code per block',
            'URA planning area + region, assigned by point-in-polygon'],
-  derived:'Derived fields — <b>MOP</b> = year completed + 5 (estimate); <b>lease remaining</b> = 99 − (current year − year completed), an approximation since the lease commences shortly before completion; <b>planning area</b> assigned by point-in-polygon against the URA Master Plan 2019 boundaries, which is why an HDB town such as Central Area resolves to URA areas like Outram and Rochor.',
-  attrib:'Contains information from <b>HDB Property Information</b> and <b>Master Plan 2019 Planning Area Boundary</b> accessed on {d} from <a href="https://data.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">data.gov.sg</a>, and from the <b>OneMap</b> Search API accessed on {d} from <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">onemap.gov.sg</a>, which are made available under the terms of the <a href="https://www.onemap.gov.sg/legal/opendatalicence.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Singapore Open Data Licence version 1.0</a>. Rail geometry © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">OpenStreetMap</a> contributors, licensed under ODbL. Basemap © Mapbox © OpenStreetMap. This report is not endorsed by, and implies no official status with, HDB, URA or SLA.',
+  derived:'Derived fields — <b>MOP</b> = year completed + 5 (estimate); <b>lease remaining</b> = 99 − (current year − year completed), an approximation since the lease commences shortly before completion; <b>planning area</b> assigned by point-in-polygon against the URA Master Plan 2025 boundaries, which is why an HDB town such as Central Area resolves to URA areas like Outram and Rochor.',
+  attrib:'Contains information from <b>HDB Property Information</b>, <b>Master Plan 2025 Planning Area Boundary</b> and the <b>Master Plan 2025 Land Use Layer</b> accessed on {d} from <a href="https://data.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">data.gov.sg</a>, and from the <b>OneMap</b> Search API accessed on {d} from <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">onemap.gov.sg</a>, which are made available under the terms of the <a href="https://www.onemap.gov.sg/legal/opendatalicence.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Singapore Open Data Licence version 1.0</a>. Rail geometry © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">OpenStreetMap</a> contributors, licensed under ODbL. Basemap © Mapbox © OpenStreetMap. This report is not endorsed by, and implies no official status with, HDB, URA or SLA.',
 };
 const ZH = {
   title:'新加坡组屋数据库',
-  sub:'全新加坡每一座住宅组屋 —— 单位数量、落成年份（TOP）、预计屋主最短居住期（MOP）、地理坐标与市区重建局规划区，整合自三个官方数据源。',
+  sub:'全新加坡每一座住宅组屋 —— 单位数量、落成年份（TOP）、预计屋主最短居住期（MOP）、地理坐标与市区重建局规划区，整合自四个官方数据源。',
   provBlocks:'座住宅组屋', provUnits:'个单位', provGeo:'已定位',
   provResale:'转售数据截至', provBuilt:'生成于',
   fRegion:'区域', fRegionAll:'全部区域', fTown:'组屋市镇', fTownAll:'全部市镇',
@@ -489,8 +489,8 @@ const ZH = {
   gprNote:'容积率决定一块地可建的楼面面积，因此最能反映周边未来可能的高度与密度。仅 29% 的地块有数值——有地住宅与需逐案评估的地块并非低容积率，而是根本不适用，故不列入色阶。面积超过 1,000 平方米的地块会标注数值。',
   srcPub:['建屋发展局（经 data.gov.sg）','新加坡土地管理局','市区重建局（经 data.gov.sg）'],
   srcDesc:['座数、单位数量、户型构成、落成年份（TOP）','每座的经纬度与邮区编号','规划区与区域，以点面判定法归属'],
-  derived:'衍生字段 —— <b>MOP</b> ＝ 落成年份 ＋ 5（估算）；<b>剩余地契</b> ＝ 99 −（当前年份 − 落成年份），属近似值，因地契在落成前已开始起算；<b>规划区</b>以点面判定法对照市区重建局 2019 年总蓝图边界归属，因此「中区」这类组屋市镇会落入欧南、梧槽等规划区。',
-  attrib:'本报告使用 <b>HDB Property Information</b> 与 <b>Master Plan 2019 Planning Area Boundary</b> 数据（于 {d} 取自 <a href="https://data.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">data.gov.sg</a>），以及 <b>OneMap</b> Search API 数据（于 {d} 取自 <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">onemap.gov.sg</a>），均依据 <a href="https://www.onemap.gov.sg/legal/opendatalicence.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Singapore Open Data Licence version 1.0</a> 提供。轨道线路数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">OpenStreetMap</a> 贡献者，依 ODbL 授权。底图 © Mapbox © OpenStreetMap。本报告未获建屋局、市区重建局或土地管理局认可，亦不具任何官方性质。',
+  derived:'衍生字段 —— <b>MOP</b> ＝ 落成年份 ＋ 5（估算）；<b>剩余地契</b> ＝ 99 −（当前年份 − 落成年份），属近似值，因地契在落成前已开始起算；<b>规划区</b>以点面判定法对照市区重建局 2025 年总蓝图边界归属，因此「中区」这类组屋市镇会落入欧南、梧槽等规划区。',
+  attrib:'本报告使用 <b>HDB Property Information</b>、<b>Master Plan 2025 Planning Area Boundary</b> 与 <b>Master Plan 2025 Land Use Layer</b> 数据（于 {d} 取自 <a href="https://data.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">data.gov.sg</a>），以及 <b>OneMap</b> Search API 数据（于 {d} 取自 <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">onemap.gov.sg</a>），均依据 <a href="https://www.onemap.gov.sg/legal/opendatalicence.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Singapore Open Data Licence version 1.0</a> 提供。轨道线路数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">OpenStreetMap</a> 贡献者，依 ODbL 授权。底图 © Mapbox © OpenStreetMap。本报告未获建屋局、市区重建局或土地管理局认可，亦不具任何官方性质。',
 };
 /* Data values with official Chinese names. Streets, projects and school names are
    deliberately absent — they have no official Chinese form. */
@@ -1524,7 +1524,9 @@ function gprLegend(){
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">${t('lgGpr')}</div>`
     + GBANDS.map(([k, lbl, v]) => `<div class="railkey">
         <span style="width:11px;height:11px;border-radius:2px;background:var(${v});opacity:${k === 'lnd' || k === 'eva' ? '.42' : '.8'};flex:none;display:inline-block"></span>
-        <span style="color:var(--text-secondary)">${lbl.startsWith('gpr') ? t(lbl) : lbl}</span></div>`).join('')
+        <span style="color:var(--text-secondary)">${
+          k === 'lnd' ? 'LND — ' + t(lbl) : k === 'eva' ? 'EVA — ' + t(lbl) : lbl
+        }</span></div>`).join('')
     + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">${t('gprNote')}</div></div>`;
 }
 

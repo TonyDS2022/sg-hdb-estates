@@ -1,0 +1,49 @@
+sg-hdb-estates — third-party data and asset notices
+===================================================
+
+The MIT licence in LICENSE covers the CODE in this repository. The datasets
+this project fetches, derives from and redistributes remain under their own
+terms, set out below. Nothing here narrows the MIT grant over the code; these
+are the upstream obligations that travel with the data.
+
+Government data — Singapore Open Data Licence v1.0
+--------------------------------------------------
+https://www.onemap.gov.sg/legal/opendatalicence.html
+
+Permits commercial and non-commercial use, with attribution. Covers:
+
+  * HDB Property Information — Housing & Development Board, via data.gov.sg
+  * Resale Flat Prices (2017 onwards) — Housing & Development Board,
+    via data.gov.sg
+  * Master Plan 2025 Planning Area Boundary (No Sea) — Urban Redevelopment
+    Authority, via data.gov.sg
+  * Master Plan 2025 Land Use Layer — Urban Redevelopment Authority,
+    via data.gov.sg
+  * OneMap Search API (geocoding) — Singapore Land Authority
+
+The derived files committed under site/ (zoning.geojson, gpr.geojson,
+gpr_labels.geojson) and data/block_zoning.json are transformations of the URA
+Master Plan 2025 Land Use Layer and carry the same terms.
+
+Map geometry — Open Database Licence (ODbL)
+-------------------------------------------
+https://opendatacommons.org/licenses/odbl/
+
+  * Rail lines, stations and school locations, derived from OpenStreetMap
+    via the Overpass API. © OpenStreetMap contributors.
+
+Typeface — SIL Open Font Licence 1.1
+------------------------------------
+https://openfontlicense.org/
+
+  * Noto Sans SC (subset, committed under site/vendor/). Copyright the Noto
+    Project Authors.
+
+Basemap
+-------
+  * Mapbox GL JS is vendored under site/vendor/ under its own licence terms.
+    Basemap tiles are served by Mapbox and are not redistributed here; running
+    a deployment requires your own Mapbox access token.
+
+Attribution is reproduced in the footer of the generated report, as the
+Singapore Open Data Licence requires.

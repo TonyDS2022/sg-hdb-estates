@@ -10,6 +10,7 @@ estimated MOP, geocoded coordinates, URA planning area and resale prices.
 [![Units](https://img.shields.io/badge/dwelling%20units-1%2C175%2C956-1baf7a?style=flat-square)](#schema--blocks)
 [![Geocoded](https://img.shields.io/badge/geocoded-100%25-1baf7a?style=flat-square)](#pipeline)
 [![Transactions](https://img.shields.io/badge/resale%20transactions-239%2C583-eb6834?style=flat-square)](#resale-prices)
+[![Licence](https://img.shields.io/badge/code-MIT-2a78d6?style=flat-square)](LICENSE)
 [![Data licence](https://img.shields.io/badge/data-Singapore%20ODL%20v1.0-8a8880?style=flat-square)](https://www.onemap.gov.sg/legal/opendatalicence.html)
 [![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/zphzpj4gcka)
 
@@ -100,7 +101,8 @@ Hosting is free; Mapbox is the cost that scales, at 50k map loads/month on the f
 |---|---|---|
 | HDB Property Information (`d_17f5382f26140b1fdae0ba2ef6239d2f`) | HDB via data.gov.sg | blocks, dwelling units, flat-type mix, year completed |
 | OneMap Search API | Singapore Land Authority | latitude / longitude / postal code per block |
-| Master Plan 2019 Planning Area Boundary (`d_4765db0e87b9c86336792efe8a1f7a66`) | URA via data.gov.sg | planning area + region polygons |
+| Master Plan 2025 Planning Area Boundary (`d_2cc750190544007400b2cfd5d7f53209`) | URA via data.gov.sg | planning area + region polygons |
+| Master Plan 2025 Land Use Layer (`d_a8c3546b26712e35021f3a681d0353ae`) | URA via data.gov.sg | zoning group + gross plot ratio per parcel |
 | OpenStreetMap (Overpass API) | OSM contributors, ODbL | MRT/LRT line and station geometry |
 | General information of schools (`d_688b934f82c1059ed0a6993d2a829089`) | MOE via data.gov.sg | 337 schools: name, level, type, postal code |
 | Resale Flat Prices (`d_8b84c4ee58e3cfc0ece0d773c8ca6abc`) | HDB via data.gov.sg | 239,583 resale transactions, Jan 2017 onwards |
@@ -394,7 +396,8 @@ Set `ONEMAP_TOKEN` to use an authenticated quota, which raises the ceiling.
 ## Attribution
 
 Contains information from **HDB Property Information**, **Resale Flat Prices** and the
-**Master Plan 2019 Planning Area Boundary**, accessed from
+**Master Plan 2025 Planning Area Boundary** and **Master Plan 2025 Land Use Layer**,
+accessed from
 [data.gov.sg](https://data.gov.sg), and from the **OneMap** Search API, accessed from
 [onemap.gov.sg](https://www.onemap.gov.sg) — all made available under the terms of the
 [Singapore Open Data Licence version 1.0](https://www.onemap.gov.sg/legal/opendatalicence.html),
@@ -409,10 +412,16 @@ The same notice appears in the footer of the report itself, as the licence requi
 
 ## Licence
 
-The code in this repository is released under the MIT Licence. The **data** it fetches and
-redistributes remains under its own terms — Singapore ODL v1.0 for the government datasets,
-ODbL for the OpenStreetMap geometry. ODbL is share-alike: if you redistribute a derived
-*database* that includes the rail or station layers, that derivative carries ODbL too.
+The code in this repository is released under the [MIT Licence](LICENSE) — free to use,
+modify and redistribute, commercially or otherwise, with the copyright notice kept.
+
+The **data** it fetches and redistributes remains under its own terms, set out in full in
+[NOTICE](NOTICE): Singapore ODL v1.0 for the government datasets (commercial use permitted,
+attribution required), ODbL for the OpenStreetMap geometry, and the SIL Open Font Licence
+for the bundled Noto Sans SC subset. ODbL is share-alike: if you redistribute a derived
+*database* that includes the rail, station or school layers, that derivative carries ODbL
+too. Basemap tiles are not redistributed — running a deployment needs your own Mapbox
+token.
 
 ## Support
 

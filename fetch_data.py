@@ -8,8 +8,10 @@ POLL = "https://api-open.data.gov.sg/v1/public/api/datasets/{}/poll-download"
 DATASETS = [
     ("d_17f5382f26140b1fdae0ba2ef6239d2f", "hdb_property.csv",
      "HDB Property Information"),
-    ("d_4765db0e87b9c86336792efe8a1f7a66", "planning_area.geojson",
-     "Master Plan 2019 Planning Area Boundary (No Sea)"),
+    # MP2025, to match the zoning and plot-ratio layers; mixing it with MP2019
+    # boundaries put two different vintages of the same plan on one map.
+    ("d_2cc750190544007400b2cfd5d7f53209", "planning_area.geojson",
+     "Master Plan 2025 Planning Area Boundary (No Sea)"),
     # resale transactions, Jan 2017 onwards - republished monthly
     ("d_8b84c4ee58e3cfc0ece0d773c8ca6abc", "resale.csv",
      "Resale Flat Prices (registration date, 2017 onwards)"),

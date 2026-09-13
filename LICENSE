@@ -12,11 +12,6 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
-NOTE: This licence covers the CODE only. The datasets fetched and redistributed
-by this project remain under their own terms: the Singapore Open Data Licence
-v1.0 for HDB, URA and SLA data, and the Open Database Licence (ODbL) for
-OpenStreetMap geometry. See the Attribution section of README.md.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE

@@ -28,7 +28,7 @@ async def m():
               undef:  (document.body.innerText.match(/undefined|NaN|\[object /g) || []).length,
             }))()""")
             bad = (checks['errorCard'] or checks['tiles'] < 5 or checks['charts'] < 10
-                   or checks['srcRows'] < 3 or checks['tblRows'] < 10 or checks['undef'] or errs)
+                   or checks['srcRows'] < 4 or checks['tblRows'] < 10 or checks['undef'] or errs)
             ok = ok and not bad
             print(f"  [{'FAIL' if bad else 'PASS'}] {label:<10} {checks}")
             if errs: print('          errors:', errs[:3])
