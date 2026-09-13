@@ -705,9 +705,9 @@ function boot(){
       <div class="f"><label for="ft">${t('fTown')}</label><select id="ft"></select></div>
       <div class="f"><label for="fp">${t('fPa')}</label><select id="fp"></select></div>
       <div class="f"><label for="fov">${t('fOverlayMode')}</label><select id="fov">
-        <option value="">${t('ovNone')}</option>
-        <option value="zone">${t('ovZone')}</option>
-        <option value="gpr">${t('ovGpr')}</option>
+        <option value=""${OVERLAY === '' ? ' selected' : ''}>${t('ovNone')}</option>
+        <option value="zone"${OVERLAY === 'zone' ? ' selected' : ''}>${t('ovZone')}</option>
+        <option value="gpr"${OVERLAY === 'gpr' ? ' selected' : ''}>${t('ovGpr')}</option>
       </select></div>
       <div class="f"><label for="fu">${t('fType')}</label><select id="fu">
         <option value="">${t('fTypeAll')}</option>
@@ -734,7 +734,7 @@ function boot(){
         <div class="chkrow">
           <label class="chk"><input type="checkbox" id="frail" checked> ${t('fRail')}</label>
           <label class="chk"><input type="checkbox" id="fstn" checked> ${t('fStations')}</label>
-          <label class="chk"><input type="checkbox" id="fsch"> ${t('fSchools')}</label>
+          <label class="chk"><input type="checkbox" id="fsch"${SHOW_SCH ? ' checked' : ''}> ${t('fSchools')}</label>
 
           <label class="chk"><input type="checkbox" id="fnames" checked> ${t('fNames')}</label>
         </div></div>
@@ -972,8 +972,8 @@ const themeNow = () => document.documentElement.getAttribute('data-theme')
 
 let MAP = null, MAP_MODE = null, MAP_PTS = [], LAST_FIT = null;
 let RAIL = null, STN = null, SHOW_RAIL = true, SHOW_NAMES = true, SHOW_STN = true;
-let SCH = null, SHOW_SCH = false;
-let ZONE = null, GPR = null, GPRL = null, OVERLAY = '';   // '' | 'zone' | 'gpr'
+let SCH = null, SHOW_SCH = true;
+let ZONE = null, GPR = null, GPRL = null, OVERLAY = 'gpr';   // '' | 'zone' | 'gpr'
 const GBANDS = [['g1','≤ 1.4','--g1'], ['g2','1.5–2.1','--g2'], ['g3','2.2–2.8','--g3'],
                 ['g4','2.9–3.5','--g4'], ['g5','> 3.5','--g5'],
                 ['lnd','gprLanded','--g-lnd'], ['eva','gprEval','--g-eva']];
@@ -1434,7 +1434,14 @@ function drawMap(rows){
        canvas has to track the container instead of a fixed height. Mapbox resizes the
        canvas, never the container, so this cannot feed back on itself. */
     new ResizeObserver(() => { if (MAP) MAP.resize(); }).observe(host);
-    MAP.on('style.load', () => { STYLE_OK = true; addMapLayers(); });
+    MAP.on('style.load', () => {
+      STYLE_OK = true; addMapLayers();
+      /* Both default on, so their payloads are fetched here rather than on a toggle.
+         Kept off the first-paint path: the page renders from data.json regardless. */
+      if (OVERLAY === 'zone') ensureZoning();
+      if (OVERLAY === 'gpr') ensureGpr();
+      if (SHOW_SCH) ensureSchools();
+    });
     MAP.on('load', () => { wireMapHover(); fitMap(MAP_PTS); LAST_FIT = sig; });
     /* Having the library and a token is not the same as having tiles. Where
        api.mapbox.com is unreachable — a firewall, a captive portal, an outage — the
