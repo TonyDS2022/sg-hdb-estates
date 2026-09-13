@@ -68,6 +68,18 @@ def main():
         hit = sum(1 for x in resale if x)
         print(f"  resale: {hit:,}/{len(rows):,} blocks have transactions")
 
+    # each block's own zone + GPR, computed against the RAW parcels by build_zoning.py
+    zoning, zmeta = [], {}
+    zp = os.path.join(DATA, "block_zoning.json")
+    if os.path.exists(zp):
+        bz = json.load(open(zp))
+        for r in rows:
+            v = bz.get(f'{r["blk_no"]}|{r["street"]}')
+            zoning.append([v["z"], v["lu"], v["gpr"]] if v else 0)
+        zmeta = {"plan": "URA Master Plan 2025",
+                 "matched": sum(1 for x in zoning if x)}
+        print(f"  zoning: {zmeta['matched']:,}/{len(rows):,} blocks carry a zone")
+
     geo = sum(1 for r in rows if r["lat"])
     years = [int(r["top_year"]) for r in rows]
     payload = {
@@ -94,6 +106,8 @@ def main():
                  "units", "floors", "u1", "u2", "u3", "u4", "u5", "uex", "uoth",
                  "urent", "postal", "comm"],
         "dict": {**{k: dicts[k] for k in dicts}, "street_full": street_full},
+        "zoning": zoning,
+        "zoningMeta": zmeta,
         "resale": resale,
         "resaleMeta": res_meta,
         "resaleTowns": res_towns,

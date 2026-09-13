@@ -14,6 +14,9 @@
   --series-5:#e87ba4; --series-6:#008300; --series-7:#4a3aa7; --series-8:#e34948;
   --ord-1:#86b6ef; --ord-2:#5598e7; --ord-3:#2a78d6; --ord-4:#1c5cab; --ord-5:#104281;
   --sch-p:#4a3aa7; --sch-s:#e87ba4; --sch-j:#eda100;
+  --z-com:#d18e00; --z-biz:#4a3aa7; --z-park:#008300; --z-reserve:#e87ba4;
+  --g1:#e17958; --g2:#cf5b37; --g3:#ac4a2c; --g4:#8a3a21; --g5:#682b19;
+  --g-lnd:#e2dfd6; --g-eva:#85837b;
   --accent:#2a78d6; --ctrl-ink:none; --map-ring:#fcfcfb;
 }
 @media (prefers-color-scheme: dark){
@@ -26,6 +29,9 @@
     --series-5:#d55181; --series-6:#008300; --series-7:#9085e9; --series-8:#e66767;
     --ord-1:#256abf; --ord-2:#3987e5; --ord-3:#6da7ec; --ord-4:#9ec5f4; --ord-5:#cde2fb;
     --sch-p:#9085e9; --sch-s:#d55181; --sch-j:#c98500;
+    --z-com:#c98500; --z-biz:#9085e9; --z-park:#008300; --z-reserve:#f584d9;
+    --g1:#9d4327; --g2:#c35533; --g3:#e0714e; --g4:#e6987e; --g5:#eebbab;
+    --g-lnd:#35332d; --g-eva:#8a8880;
     --accent:#3987e5; --ctrl-ink:invert(1) hue-rotate(180deg); --map-ring:#1a1a19;
   }
 }
@@ -38,6 +44,9 @@
   --series-5:#d55181; --series-6:#008300; --series-7:#9085e9; --series-8:#e66767;
   --ord-1:#256abf; --ord-2:#3987e5; --ord-3:#6da7ec; --ord-4:#9ec5f4; --ord-5:#cde2fb;
   --sch-p:#9085e9; --sch-s:#d55181; --sch-j:#c98500;
+  --z-com:#c98500; --z-biz:#9085e9; --z-park:#008300; --z-reserve:#f584d9;
+  --g1:#9d4327; --g2:#c35533; --g3:#e0714e; --g4:#e6987e; --g5:#eebbab;
+  --g-lnd:#35332d; --g-eva:#8a8880;
   --accent:#3987e5; --ctrl-ink:invert(1) hue-rotate(180deg); --map-ring:#1a1a19;
 }
 *{box-sizing:border-box}
@@ -131,9 +140,9 @@ select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
 svg{display:block;width:100%;height:auto;overflow:visible}
 /* the global svg rule above must not touch Mapbox's own control icons */
 .mapboxgl-ctrl svg{width:auto;height:auto}
-#map{height:540px;border-radius:9px;overflow:hidden;background:var(--surface-2);
+#map{min-height:540px;border-radius:9px;overflow:hidden;background:var(--surface-2);
   border:1px solid var(--border)}
-#map.svgfallback{height:auto;border:0;background:none}
+#map.svgfallback{min-height:0;height:auto;border:0;background:none}
 .mapboxgl-ctrl-group{background:var(--surface-1)!important;border:1px solid var(--border)!important;
   box-shadow:none!important;border-radius:7px!important}
 .mapboxgl-ctrl-group button+button{border-top:1px solid var(--border)!important}
@@ -162,7 +171,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   transition:opacity .1s;max-width:270px;line-height:1.45}
 #tip b{font-weight:620}
 #tip .d{color:var(--text-secondary)}
-.maprow{display:grid;grid-template-columns:1fr 200px;gap:18px;align-items:start}
+.maprow{display:grid;grid-template-columns:1fr 200px;gap:18px;align-items:stretch}
 @media(max-width:820px){.maprow{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
 th{text-align:left;font-weight:620;color:var(--text-secondary);border-bottom:1px solid var(--border);
@@ -387,7 +396,7 @@ const EN = {
   pgBlock:'Listings in block {b}', pgProject:'Listings in {p}', pgStreet:'Listings on {s}',
   pgNote:'PropertyGuru searches, opening in a new tab. A single block often has no active listing — the project and street searches are the fallbacks.',
   pgFiltered:', filtered to {t}',
-  pUnits:'units', pStoreysW:'storeys', pLeaseLeft:'years lease remaining', pFrom:'from',
+  pUnits:'units', pStoreysW:'storeys', pLeaseLeft:'years lease remaining', pFrom:'from {y}',
   clickHint:'Click for full history', noSel:'Nothing in this selection.', noGeo:'No geocoded blocks in this selection.',
   srcHead:'Sources', priceNoteA:'Median resale price by year of sale, {t}, for the estates in the current selection.',
   priceNoteB:'{n} transactions, {a} to {b}.', priceLegend:'Aggregated from HDB town medians, weighted by transaction count. 2026 is a partial year.',
@@ -395,6 +404,14 @@ const EN = {
   errRender:'Something went wrong drawing the page', errLoad:'Could not load the data', theme:'theme',
   schPrimary:'Primary', schSecondary:'Secondary', schJC:'Junior College',
   storeyBand:'storey {b}', leaseYr:'{n}y', monthFmt:'{mon} {y}',
+  fZoning:'Zoning', lgZoning:'Zoning · URA Master Plan 2025',
+  zCom:'Commercial', zBiz:'Business & industry', zPark:'Park & open space',
+  zReserve:'Reserve site', zRes:'Residential', zCiv:'Civic & community', zOther:'Other',
+  zNote:'Only non-residential land is shaded: 99.8% of HDB blocks stand on land zoned residential, so colouring it would wash the whole map. Reserve sites are land URA has not yet assigned a use.',
+  pZone:'Zoning', pGpr:'Plot ratio', gprLanded:'landed housing', gprEval:'subject to evaluation',
+  ovNone:'None', ovZone:'Zoning', ovGpr:'Plot ratio', fOverlayMode:'Map overlay',
+  lgGpr:'Plot ratio · URA Master Plan 2025',
+  gprNote:'Gross plot ratio caps how much floor area a site may hold, so it is the clearest signal of how tall and dense the surroundings may still become. Only 29% of parcels carry a number — landed housing and sites left to case-by-case evaluation are not low ratios, they are not ratios at all, so they sit outside the ramp. Values are labelled on parcels over 1,000 m².',
   srcPub:['Housing & Development Board via data.gov.sg','Singapore Land Authority',
           'Urban Redevelopment Authority via data.gov.sg'],
   srcDesc:['blocks, dwelling units, flat mix, year completed (TOP)',
@@ -454,7 +471,7 @@ const ZH = {
   pgBlock:'第 {b} 座的房源', pgProject:'{p} 的房源', pgStreet:'{s} 的房源',
   pgNote:'PropertyGuru 搜索，将在新标签页打开。单座组屋往往没有在售房源，可改用项目或街道搜索。',
   pgFiltered:'，已筛选为{t}',
-  pUnits:'个单位', pStoreysW:'层', pLeaseLeft:'年剩余地契', pFrom:'起算',
+  pUnits:'个单位', pStoreysW:'层', pLeaseLeft:'年剩余地契', pFrom:'{y} 起算',
   clickHint:'点击查看完整记录', noSel:'当前筛选无数据。', noGeo:'当前筛选没有已定位的组屋。',
   srcHead:'数据来源', priceNoteA:'按成交年份统计的转售中位价（{t}），范围为当前筛选的市镇。',
   priceNoteB:'共 {n} 宗交易，{a} 至 {b}。', priceLegend:'由各组屋市镇的中位价按成交量加权汇总。2026 年为部分年份数据。',
@@ -462,6 +479,14 @@ const ZH = {
   errRender:'页面渲染出错', errLoad:'数据载入失败', theme:'主题',
   schPrimary:'小学', schSecondary:'中学', schJC:'初级学院',
   storeyBand:'{b} 楼', leaseYr:'{n} 年', monthFmt:'{y}年{mon}月',
+  fZoning:'土地用途', lgZoning:'土地用途 · 市区重建局2025年总蓝图',
+  zCom:'商业', zBiz:'商务与工业', zPark:'公园与开放空间',
+  zReserve:'保留用地', zRes:'住宅', zCiv:'民用与社区', zOther:'其他',
+  zNote:'仅为非住宅用地着色：99.8% 的组屋坐落于住宅用地，若一并着色将使整幅地图失去意义。保留用地指市区重建局尚未确定用途的土地。',
+  pZone:'土地用途', pGpr:'容积率', gprLanded:'有地住宅', gprEval:'待评估',
+  ovNone:'无', ovZone:'土地用途', ovGpr:'容积率', fOverlayMode:'地图图层',
+  lgGpr:'容积率 · 市区重建局2025年总蓝图',
+  gprNote:'容积率决定一块地可建的楼面面积，因此最能反映周边未来可能的高度与密度。仅 29% 的地块有数值——有地住宅与需逐案评估的地块并非低容积率，而是根本不适用，故不列入色阶。面积超过 1,000 平方米的地块会标注数值。',
   srcPub:['建屋发展局（经 data.gov.sg）','新加坡土地管理局','市区重建局（经 data.gov.sg）'],
   srcDesc:['座数、单位数量、户型构成、落成年份（TOP）','每座的经纬度与邮区编号','规划区与区域，以点面判定法归属'],
   derived:'衍生字段 —— <b>MOP</b> ＝ 落成年份 ＋ 5（估算）；<b>剩余地契</b> ＝ 99 −（当前年份 − 落成年份），属近似值，因地契在落成前已开始起算；<b>规划区</b>以点面判定法对照市区重建局 2019 年总蓝图边界归属，因此「中区」这类组屋市镇会落入欧南、梧槽等规划区。',
@@ -620,6 +645,7 @@ loadData().then(async d => {
     o.streetFull = (D.street_full || D.street)[si];
     o.project = (D.project || [])[o.project] || '';
     o.res = (d.resale || [])[i] || null;
+    o.zone = (d.zoning || [])[i] || null;
     o.town = D.town[o.town];
     o.pa = D.planning_area[o.pa];
     o.region = D.region[o.region];
@@ -678,6 +704,11 @@ function boot(){
       <div class="f"><label for="fr">${t('fRegion')}</label><select id="fr"></select></div>
       <div class="f"><label for="ft">${t('fTown')}</label><select id="ft"></select></div>
       <div class="f"><label for="fp">${t('fPa')}</label><select id="fp"></select></div>
+      <div class="f"><label for="fov">${t('fOverlayMode')}</label><select id="fov">
+        <option value="">${t('ovNone')}</option>
+        <option value="zone">${t('ovZone')}</option>
+        <option value="gpr">${t('ovGpr')}</option>
+      </select></div>
       <div class="f"><label for="fu">${t('fType')}</label><select id="fu">
         <option value="">${t('fTypeAll')}</option>
         ${TYPES.map(x => `<option value="${x.k}">${zhType(x.k)}</option>`).join('')}
@@ -704,6 +735,7 @@ function boot(){
           <label class="chk"><input type="checkbox" id="frail" checked> ${t('fRail')}</label>
           <label class="chk"><input type="checkbox" id="fstn" checked> ${t('fStations')}</label>
           <label class="chk"><input type="checkbox" id="fsch"> ${t('fSchools')}</label>
+
           <label class="chk"><input type="checkbox" id="fnames" checked> ${t('fNames')}</label>
         </div></div>
       <button class="btn" id="freset">${t('reset')}</button>
@@ -785,6 +817,13 @@ function boot(){
     mapLegend(filtered().filter(b => b.lat != null));
   };
   $('#fstn').onchange = e => { SHOW_STN = e.target.checked; setStationVis(); };
+  $('#fov').onchange = async e => {
+    OVERLAY = e.target.value;
+    if (OVERLAY === 'zone') await ensureZoning();
+    if (OVERLAY === 'gpr') await ensureGpr();
+    setOverlayVis();
+    mapLegend(filtered().filter(b => b.lat != null));
+  };
   $('#fsch').onchange = async e => {
     SHOW_SCH = e.target.checked;
     if (SHOW_SCH) await ensureSchools();
@@ -934,6 +973,24 @@ const themeNow = () => document.documentElement.getAttribute('data-theme')
 let MAP = null, MAP_MODE = null, MAP_PTS = [], LAST_FIT = null;
 let RAIL = null, STN = null, SHOW_RAIL = true, SHOW_NAMES = true, SHOW_STN = true;
 let SCH = null, SHOW_SCH = false;
+let ZONE = null, GPR = null, GPRL = null, OVERLAY = '';   // '' | 'zone' | 'gpr'
+const GBANDS = [['g1','≤ 1.4','--g1'], ['g2','1.5–2.1','--g2'], ['g3','2.2–2.8','--g3'],
+                ['g4','2.9–3.5','--g4'], ['g5','> 3.5','--g5'],
+                ['lnd','gprLanded','--g-lnd'], ['eva','gprEval','--g-eva']];
+const ZONES = [['com','zCom','--z-com'], ['biz','zBiz','--z-biz'],
+               ['park','zPark','--z-park'], ['reserve','zReserve','--z-reserve']];
+const ZKEY = {com:'zCom', biz:'zBiz', park:'zPark', reserve:'zReserve',
+              res:'zRes', civ:'zCiv', other:'zOther'};
+/* GPR is only a number for 29% of parcels; LND is landed housing and EVA/SDP mean the
+   density is decided case by case. Printing those codes raw would read as corruption. */
+function gprLabel(v){
+  if (v == null || v === '') return '';
+  const num = parseFloat(v);
+  if (!isNaN(num) && String(v).match(/^[\d.]+$/)) return String(num);
+  if (v === 'LND') return t('gprLanded');
+  if (v === 'EVA' || v === 'SDP') return t('gprEval');
+  return '';
+}
 let HAS_RESALE = false;
 
 /* MRT/LRT geometry from OpenStreetMap, drawn in the operators' own line colours.
@@ -971,6 +1028,92 @@ function squareIcon(fill, ring){
   x.fillStyle = ring; x.fillRect(0, 0, S, S);
   x.fillStyle = fill; x.fillRect(2.5, 2.5, S - 5, S - 5);
   return x.getImageData(0, 0, S, S);
+}
+
+/* URA Master Plan 2025 land use. 190 MB of parcels dissolved by zone and simplified to
+   ~5 m becomes ~2 MB; at that tolerance the per-block zone still agrees with the raw
+   polygons 99.99% of the time, and the exact zone shown in the panel is computed from
+   the raw parcels anyway. Painted UNDER the block dots and at low opacity: these are
+   large fills, and the dots are the data. */
+async function ensureZoning(){
+  if (!ZONE) ZONE = await loadJSON('zoning.geojson');
+  if (MAP) addZoneLayers();
+}
+
+/* A choropleth drawn on top of the basemap has to stay translucent to keep streets and
+   place names readable, and at that opacity five ramp steps collapse into one — the light
+   ramp separated by only 2.2 ΔL*. Slipping the fill beneath the road layers lets it run at
+   full strength with the basemap's own labels drawn back over it. */
+function underRoads(){
+  const l = MAP.getStyle().layers.find(x => /^(tunnel|road|bridge|aeroway)/.test(x.id));
+  return l && l.id;
+}
+
+function addZoneLayers(){
+  if (!ZONE || !ZONE.features.length || MAP.getSource('zoning')) return;
+  MAP.addSource('zoning', {type:'geojson', data: ZONE});
+  const cs = getComputedStyle(document.documentElement);
+  const match = ['match', ['get','z']];
+  ZONES.forEach(([k,, v]) => match.push(k, cs.getPropertyValue(v).trim()));
+  match.push('#888');
+  const first = underRoads();
+  MAP.addLayer({id:'zone-fill', type:'fill', source:'zoning',
+    layout:{visibility: OVERLAY === 'zone' ? 'visible' : 'none'},
+    paint:{'fill-color': match, 'fill-opacity': 0.8}}, first);
+  MAP.addLayer({id:'zone-line', type:'line', source:'zoning',
+    layout:{visibility: OVERLAY === 'zone' ? 'visible' : 'none'},
+    paint:{'line-color': match, 'line-width':0.6, 'line-opacity':0.55}}, first);
+}
+
+/* Two colourings of the same polygons; showing both would double-encode one shape. */
+function setOverlayVis(){
+  const show = {'zone-fill': 'zone', 'zone-line': 'zone',
+                'gpr-fill': 'gpr', 'gpr-line': 'gpr', 'gpr-label': 'gpr'};
+  for (const id in show){
+    if (MAP && MAP.getLayer(id))
+      MAP.setLayoutProperty(id, 'visibility', OVERLAY === show[id] ? 'visible' : 'none');
+  }
+  /* Over a painted overlay a bare dot can land on a ground of nearly its own luminance —
+     mid-blue on the palest orange measures 1.02:1. The surface-coloured ring, otherwise
+     held back for crowded zooms, is what keeps the mark readable, so bring it in at every
+     zoom whenever a fill is showing. */
+  if (MAP && MAP.getLayer('blocks-dots'))
+    MAP.setPaintProperty('blocks-dots', 'circle-stroke-width',
+      OVERLAY ? ['interpolate', ['linear'], ['zoom'], 9, 0.6, 14.5, 1.2]
+              : ['interpolate', ['linear'], ['zoom'], 12, 0, 14.5, 1]);
+}
+
+async function ensureGpr(){
+  if (!GPR) [GPR, GPRL] = await Promise.all([loadJSON('gpr.geojson'), loadJSON('gpr_labels.geojson')]);
+  if (MAP) addGprLayers();
+}
+
+function addGprLayers(){
+  if (!GPR || !GPR.features.length || MAP.getSource('gpr')) return;
+  const cs = getComputedStyle(document.documentElement);
+  const match = ['match', ['get','g']];
+  GBANDS.forEach(([k,, v]) => match.push(k, cs.getPropertyValue(v).trim()));
+  match.push('#888');
+  const vis = OVERLAY === 'gpr' ? 'visible' : 'none';
+  const before = underRoads();
+  MAP.addSource('gpr', {type:'geojson', data: GPR});
+  MAP.addLayer({id:'gpr-fill', type:'fill', source:'gpr', layout:{visibility: vis},
+    paint:{'fill-color': match,
+           'fill-opacity': ['match', ['get','g'], 'lnd', 0.42, 'eva', 0.42, 0.8]}}, before);
+  MAP.addLayer({id:'gpr-line', type:'line', source:'gpr', layout:{visibility: vis},
+    paint:{'line-color': match, 'line-width':0.5, 'line-opacity':0.5}}, before);
+  /* The ramp gives the shape of the city; the number gives the answer. Labels are
+     per-parcel and only from zoom 13 — at national zoom they are unreadable confetti. */
+  MAP.addSource('gprl', {type:'geojson', data: GPRL || {type:'FeatureCollection',features:[]}});
+  MAP.addLayer({id:'gpr-label', type:'symbol', source:'gprl', minzoom:13,
+    layout:{'text-field':['get','t'],
+            'text-font':['DIN Pro Medium','Arial Unicode MS Bold'],
+            'text-size':['interpolate',['linear'],['zoom'],13,10,16,13.5,18,16],
+            'text-padding':2, 'text-allow-overlap':false, visibility: vis},
+    paint:{'text-opacity': 0.8,
+           'text-color': MAP_MODE === 'dark' ? '#ffffff' : '#3a2a18',
+           'text-halo-color': MAP_MODE === 'dark' ? '#1a1a19' : '#fcfcfb',
+           'text-halo-width':1.6}});
 }
 
 /* Fetched only when the toggle is first switched on — the layer is off by default,
@@ -1154,6 +1297,8 @@ function addStationLayers(){
 }
 
 function addMapLayers(){
+  if (ZONE) addZoneLayers();   // beneath everything: large fills, the dots are the data
+  if (GPR) addGprLayers();
   addRailLayers();          // first, so the block dots draw above the lines
   if (!MAP.getSource('blocks'))
     MAP.addSource('blocks', {type:'geojson', data: toGeoJSON(MAP_PTS)});
@@ -1285,6 +1430,10 @@ function drawMap(rows){
     MAP = new mapboxgl.Map({container: host, style: window.MAP_CONFIG.styles[mode],
       center:[103.82, 1.352], zoom:10.4, attributionControl:true});
     MAP.addControl(new mapboxgl.NavigationControl({showCompass:false}), 'top-right');
+    /* The legend column sizes the row, and it grows when an overlay adds its keys, so the
+       canvas has to track the container instead of a fixed height. Mapbox resizes the
+       canvas, never the container, so this cannot feed back on itself. */
+    new ResizeObserver(() => { if (MAP) MAP.resize(); }).observe(host);
     MAP.on('style.load', () => { STYLE_OK = true; addMapLayers(); });
     MAP.on('load', () => { wireMapHover(); fitMap(MAP_PTS); LAST_FIT = sig; });
     /* Having the library and a token is not the same as having tiles. Where
@@ -1362,6 +1511,26 @@ function setStationVis(){
   });
 }
 
+function gprLegend(){
+  if (OVERLAY !== 'gpr' || !GPR || !GPR.features.length) return '';
+  return `<div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">${t('lgGpr')}</div>`
+    + GBANDS.map(([k, lbl, v]) => `<div class="railkey">
+        <span style="width:11px;height:11px;border-radius:2px;background:var(${v});opacity:${k === 'lnd' || k === 'eva' ? '.42' : '.8'};flex:none;display:inline-block"></span>
+        <span style="color:var(--text-secondary)">${lbl.startsWith('gpr') ? t(lbl) : lbl}</span></div>`).join('')
+    + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">${t('gprNote')}</div></div>`;
+}
+
+function zoneLegend(){
+  if (OVERLAY !== 'zone' || !ZONE || !ZONE.features.length) return '';
+  return `<div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:9px">${t('lgZoning')}</div>`
+    + ZONES.map(([k, lbl, v]) => `<div class="railkey">
+        <span style="width:11px;height:11px;border-radius:2px;background:var(${v});opacity:.55;flex:none;display:inline-block"></span>
+        <span style="color:var(--text-secondary)">${t(lbl)}</span></div>`).join('')
+    + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">${t('zNote')}</div></div>`;
+}
+
 function schoolLegend(){
   if (!SHOW_SCH || !SCH || !SCH.features.length) return '';
   const c = {};
@@ -1400,6 +1569,8 @@ function railLegend(){
            <div class="railkey"><span style="width:7px;height:7px;border-radius:50%;
              border:1.6px solid var(--series-1);background:var(--surface-1);flex:none;display:inline-block"></span>
            <span style="color:var(--text-secondary)">${t('lgStation')}</span></div>` : '')
+    + zoneLegend()
+    + gprLegend()
     + schoolLegend()
     + `<div style="margin-top:9px;font-size:10.5px;color:var(--text-muted);line-height:1.45">${t('lgRailNote')}</div></div>`;
 }
@@ -1708,8 +1879,10 @@ function panelMeta(b, rec){
                              : 99 - (DB.meta.this_year - b.top);
   const exact = rec && rec.lc;
   return `${zhTown(b.town)} · ${zhPa(b.pa) || '—'}<br>${fmt(b.units)} ${t('pUnits')} · ${b.floors} ${t('pStoreysW')}
-    · TOP ${b.top} · ${t('colMop')} ${b.mop}<br>${exact ? '' : '~'}${left} ${t('pLeaseLeft')}${exact ? ` (${rec.lc} ${t('pFrom')})` : ''}` +
-    (b.postal ? ' · Singapore ' + b.postal : '');
+    · TOP ${b.top} · ${t('colMop')} ${b.mop}<br>${exact ? '' : '~'}${left} ${t('pLeaseLeft')}${exact ? ` (${t('pFrom', {y: rec.lc})})` : ''}` +
+    (b.postal ? ' · Singapore ' + b.postal : '') +
+    (b.zone ? `<br>${t('pZone')}: ${t(ZKEY[b.zone[0]] || 'zOther')}` +
+      (gprLabel(b.zone[2]) ? ` · ${t('pGpr')} ${gprLabel(b.zone[2])}` : '') : '');
 }
 
 function renderPanel(b, rec){

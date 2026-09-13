@@ -29,3 +29,6 @@ docs/*.webm
 
 # 15 MB font source, re-downloaded by build_font.py; only the subset is committed
 data/NotoSansSC-VF.otf
+
+# URA MP2025 land-use source: 190 MB, refetched by build_zoning.py on demand.
+data/mp2025_landuse.geojson
