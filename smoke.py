@@ -23,12 +23,20 @@ async def m():
               srcRows:document.querySelectorAll('#src tr').length,
               tblRows:document.querySelectorAll('#tbody tr').length,
               mapDots:document.querySelectorAll('#map canvas').length,
+              // A legend section renders nothing until its layer's data has loaded, and
+              // the loads are lazy, so a default-on layer can paint with no key at all.
+              // This page was shipped that way once; assert the keys, not just the layer.
+              legOverlay: /PLOT RATIO|容积率|ZONING|土地用途/.test(
+                            (document.querySelector('#maplegend')||{}).innerText || ''),
+              legSchools: /MOE|教育部/.test(
+                            (document.querySelector('#maplegend')||{}).innerText || ''),
               // rows existing is not the same as rows being right: a broken template
               // renders "undefined" happily and every count still passes
               undef:  (document.body.innerText.match(/undefined|NaN|\[object /g) || []).length,
             }))()""")
             bad = (checks['errorCard'] or checks['tiles'] < 5 or checks['charts'] < 10
-                   or checks['srcRows'] < 4 or checks['tblRows'] < 10 or checks['undef'] or errs)
+                   or checks['srcRows'] < 4 or checks['tblRows'] < 10 or checks['undef']
+                   or not checks['legOverlay'] or not checks['legSchools'] or errs)
             ok = ok and not bad
             print(f"  [{'FAIL' if bad else 'PASS'}] {label:<10} {checks}")
             if errs: print('          errors:', errs[:3])

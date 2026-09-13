@@ -1035,9 +1035,17 @@ function squareIcon(fill, ring){
    polygons 99.99% of the time, and the exact zone shown in the panel is computed from
    the raw parcels anyway. Painted UNDER the block dots and at low opacity: these are
    large fills, and the dots are the data. */
+/* The overlay and school legends render nothing until their data is loaded, and the
+   loads are lazy. Anything that defaults on therefore draws its layer but no key until
+   the next redraw, so each loader refreshes the legend once its data is in. */
+function refreshMapLegend(){
+  if (MAP_PTS && MAP_PTS.length) mapLegend(MAP_PTS);
+}
+
 async function ensureZoning(){
   if (!ZONE) ZONE = await loadJSON('zoning.geojson');
   if (MAP) addZoneLayers();
+  refreshMapLegend();
 }
 
 /* A choropleth drawn on top of the basemap has to stay translucent to keep streets and
@@ -1086,6 +1094,7 @@ function setOverlayVis(){
 async function ensureGpr(){
   if (!GPR) [GPR, GPRL] = await Promise.all([loadJSON('gpr.geojson'), loadJSON('gpr_labels.geojson')]);
   if (MAP) addGprLayers();
+  refreshMapLegend();
 }
 
 function addGprLayers(){
@@ -1121,6 +1130,7 @@ function addGprLayers(){
 async function ensureSchools(){
   if (!SCH) SCH = await loadJSON('schools.geojson');
   if (MAP) addSchoolLayers();
+  refreshMapLegend();
 }
 
 function addSchoolLayers(){
